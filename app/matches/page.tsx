@@ -1264,76 +1264,104 @@ export default function MatchesPage() {
       <Navigation />
 
       <div className="relative z-10 mx-auto max-w-[1400px] px-6 pb-16 pt-28 lg:px-10">
-        {/* MINIMALIST ADMIN DASHBOARD SUMMARY */}
-        <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
-          {/* Total Athletes */}
-          <Card className="shadow-none border-foreground/5 bg-transparent">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Total Atlet</p>
-              <h3 className="mt-1 text-2xl font-bold text-foreground">{stats.total}</h3>
-            </CardContent>
-          </Card>
-
-          {/* Gender Breakdown */}
-          <Card className="shadow-none border-foreground/5 bg-transparent">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Gender</p>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-xl font-bold text-foreground">
-                  {stats.male}
-                  <span className="text-muted-foreground/30 font-normal mx-1">/</span>
-                  {stats.female}
-                </span>
+        {/* PREMIUM BENTO DASHBOARD SUMMARY */}
+        <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Card 1: Total & Performance */}
+          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Total Athletes</p>
+                  <h3 className="mt-2 text-4xl font-black tracking-tight text-foreground">{stats.total}</h3>
+                  <div className="mt-3 flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Active Registrations</p>
+                  </div>
+                </div>
+                <div className="rounded-full bg-foreground/5 p-2.5">
+                  <Users className="h-5 w-5 text-foreground/70" />
+                </div>
               </div>
-              <p className="text-[9px] text-muted-foreground">L / P</p>
             </CardContent>
           </Card>
 
-          {/* Kyorugi Category */}
-          <Card className="shadow-none border-foreground/5 bg-transparent">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Kyourugi</p>
-              <h3 className="mt-1 text-2xl font-bold text-foreground">{stats.kyorugi}</h3>
+          {/* Card 2: Gender Balance */}
+          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Gender Balance</p>
+              <div className="mt-3 flex items-end justify-between">
+                <div className="flex flex-col">
+                  <span className="text-2xl font-bold text-foreground">{Math.round((stats.male / (stats.total || 1)) * 100)}%</span>
+                  <span className="text-[9px] font-bold uppercase text-muted-foreground">Putra</span>
+                </div>
+                <div className="flex flex-col text-right">
+                  <span className="text-2xl font-bold text-foreground">{Math.round((stats.female / (stats.total || 1)) * 100)}%</span>
+                  <span className="text-[9px] font-bold uppercase text-muted-foreground">Putri</span>
+                </div>
+              </div>
+              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-foreground/5">
+                <div 
+                  className="h-full bg-foreground transition-all duration-1000 ease-out" 
+                  style={{ width: `${(stats.male / (stats.total || 1)) * 100}%` }}
+                />
+              </div>
+              <p className="mt-2 text-[9px] text-center font-medium text-muted-foreground uppercase tracking-widest">
+                {stats.male} L / {stats.female} P
+              </p>
             </CardContent>
           </Card>
 
-          {/* Poomsae Category */}
-          <Card className="shadow-none border-foreground/5 bg-transparent">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Poomsae</p>
-              <h3 className="mt-1 text-2xl font-bold text-foreground">{stats.poomsae}</h3>
+          {/* Card 3: Competition Split */}
+          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Competition Split</p>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-blue-500" />
+                    <span className="text-xs font-bold uppercase text-foreground/80">Kyorugi</span>
+                  </div>
+                  <span className="text-sm font-black text-foreground">{stats.kyorugi}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                    <span className="text-xs font-bold uppercase text-foreground/80">Poomsae</span>
+                  </div>
+                  <span className="text-sm font-black text-foreground">{stats.poomsae}</span>
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/5">
+                  <div 
+                    className="h-full bg-blue-500 transition-all duration-1000 ease-out" 
+                    style={{ width: `${(stats.kyorugi / (stats.total || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Prestasi Class */}
-          <Card className="shadow-none border-foreground/5 bg-transparent">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Prestasi</p>
-              <h3 className="mt-1 text-2xl font-bold text-foreground">{stats.prestasi}</h3>
-            </CardContent>
-          </Card>
-
-          {/* Pemula Class */}
-          <Card className="shadow-none border-foreground/5 bg-transparent">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Pemula</p>
-              <h3 className="mt-1 text-2xl font-bold text-foreground">{stats.pemula}</h3>
-            </CardContent>
-          </Card>
-
-          {/* Groups Count */}
-          <Card className="shadow-none border-foreground/5 bg-transparent sm:col-span-2 lg:col-span-1">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Kelompok</p>
-              <h3 className="mt-1 text-2xl font-bold text-foreground">{stats.groupsCount}</h3>
-            </CardContent>
-          </Card>
-
-          {/* Check-in Count */}
-          <Card className="shadow-none border-foreground/5 bg-transparent lg:hidden xl:block">
-            <CardContent className="p-2">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Hadir</p>
-              <h3 className="mt-1 text-2xl font-bold text-foreground">{athletes.filter(a => a.is_checked_in).length}</h3>
+          {/* Card 4: Participation Status */}
+          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Participation</p>
+              <div className="mt-2 flex items-center justify-between">
+                <h3 className="text-3xl font-black text-foreground">
+                  {Math.round(((athletes.filter(a => a.is_checked_in).length) / (stats.total || 1)) * 100)}%
+                </h3>
+                <div className="rounded-lg bg-emerald-500/10 px-2 py-1">
+                  <span className="text-[10px] font-bold text-emerald-600 uppercase">Live</span>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-foreground/5 bg-foreground/[0.02] p-2">
+                  <p className="text-[8px] font-bold uppercase text-muted-foreground">Hadir</p>
+                  <p className="text-sm font-black text-foreground">{athletes.filter(a => a.is_checked_in).length}</p>
+                </div>
+                <div className="rounded-lg border border-foreground/5 bg-foreground/[0.02] p-2">
+                  <p className="text-[8px] font-bold uppercase text-muted-foreground">Kelompok</p>
+                  <p className="text-sm font-black text-foreground">{stats.groupsCount}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
