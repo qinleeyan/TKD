@@ -1,0 +1,57 @@
+
+> my-v0-project@0.1.0 dev
+> next dev
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Local:         http://localhost:3000
+   - Network:       http://192.168.3.191:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Ready in 515ms
+ GET /matches 200 in 2.4s (compile: 2.3s, render: 131ms)
+ GET / 200 in 1389ms (compile: 1094ms, render: 295ms)
+ GET / 200 in 176ms (compile: 9ms, render: 167ms)
+ GET /login 200 in 1345ms (compile: 1223ms, render: 122ms)
+ GET /matches 200 in 35ms (compile: 5ms, render: 30ms)
+ GET / 200 in 77ms (compile: 4ms, render: 73ms)
+ GET /login 200 in 36ms (compile: 3ms, render: 33ms)
+ GET /login 200 in 221ms (compile: 10ms, render: 212ms)
+ GET / 200 in 201ms (compile: 4ms, render: 196ms)
+ GET /login 200 in 174ms (compile: 11ms, render: 163ms)
+ GET / 200 in 93ms (compile: 9ms, render: 84ms)
+ GET /login 200 in 57ms (compile: 14ms, render: 43ms)
+ GET /login 200 in 47ms (compile: 3ms, render: 44ms)
+ GET /login 200 in 60ms (compile: 6ms, render: 55ms)
+ GET /login 200 in 154ms (compile: 40ms, render: 114ms)
+ GET /login 200 in 62ms (compile: 20ms, render: 42ms)
+ GET /login 200 in 50ms (compile: 8ms, render: 42ms)
+ GET /matches 200 in 34ms (compile: 5ms, render: 29ms)
+ GET /matches 200 in 21ms (compile: 5ms, render: 16ms)
+ ✓ Compiled in 178ms
+ GET / 200 in 99ms (compile: 12ms, render: 87ms)
+ GET /dashboard 200 in 188ms (compile: 151ms, render: 37ms)
+ GET /login 200 in 254ms (compile: 102ms, render: 152ms)
+ GET /matches 200 in 102ms (compile: 80ms, render: 21ms)
+ GET /matches 200 in 18ms (compile: 4ms, render: 13ms)
+ ✓ Compiled in 214ms
+ ✓ Compiled in 149ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⨯ ReferenceError: useRealtime is not defined
+    at MatchesPage (app/matches/page.tsx:343:3)
+  341 |
+  342 |   // --- Real-time Real-time (Zero Latency) ---
+> 343 |   useRealtime(useCallback((event, data) => {
+      |   ^
+  344 |     if (["processing_start", "processing_parsing", "processing_clustering", "processing_complete"].includes(event)) {
+  345 |       setProgressMessage(data?.message || "");
+  346 |       if (event === "processing_complete") { {
+  digest: '1917302657'
+}
+ GET /matches 500 in 257ms (compile: 83ms, render: 174ms)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 136ms
+ GET /matches 200 in 247ms (compile: 75ms, render: 172ms)
+ ✓ Compiled in 162ms
+[?25h

@@ -1,0 +1,2726 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
+import { Navigation } from "@/components/landing/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { API_BASE_URL, WS_BASE_URL, fetchWithAuth, getAuthHeaders } from "@/lib/api";
+import {
+  CheckCircle2,
+  Download,
+  Edit3,
+  FileSpreadsheet,
+  GripVertical,
+  Loader2,
+  Megaphone,
+  Plus,
+  RefreshCw,
+  Save,
+  Swords,
+  Trash2,
+  Upload,
+  Users,
+  X,
+  Trophy,
+  Activity,
+  Play,
+  CloudUpload,
+  File,
+  Search,
+  Eye,
+  Undo2,
+  Eraser,
+  ArrowRightSquare,
+  UserCheck,
+  FileText,
+  ImagePlus,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
+import { toast } from "sonner";
+import { useRealtime } from "@/hooks/use-realtime";
+
+type Category = "kyourugi" | "poomsae";
+type SortBy = "age" | "gender" | "weight" | "height";
+
+type AthleteCard = {
+  id?: number;
+  client_id?: string;
+  nama: string;
+  umur: number;
+  gender: number;
+  gender_display?: string;
+  tinggi_cm: number;
+  berat_kg: number;
+  sabuk: number | string;
+  sabuk_display?: string;
+  kontingen: string;
+  klub?: string;
+  class_level: string;
+  is_checked_in?: boolean;
+  position?: number;
+};
+
+type GroupCard = {
+  id?: number;
+  group_id?: number;
+  group_name: string;
+  match_category: Category;
+  gender: number;
+  gender_display?: string;
+  sort_order: number;
+  athlete_count?: number;
+  age_min?: number;
+  age_max?: number;
+  height_min?: number;
+  height_max?: number;
+  weight_min?: number;
+  weight_max?: number;
+  fairness_score?: number;
+  is_manual?: boolean;
+  athletes: AthleteCard[];
+  matches?: any[];
+};
+
+type MatchParticipant = {
+  athlete: number;
+  athlete_detail?: AthleteCard;
+  corner: "red" | "blue";
+};
+
+type MatchRow = {
+  id: number;
+  round: number;
+  arena?: number | null;
+  arena_name?: string;
+  match_number: number;
+  bout_number?: number;
+  status: string;
+  group_name?: string;
+  participants: MatchParticipant[];
+  winner?: number | null;
+};
+
+type RoundRow = {
+  id: number;
+  weight_class_name: string;
+  round_number: number;
+};
+
+const TOURNAMENT_ID = 1;
+
+const statusLabels: Record<string, string> = {
+  scheduled: "Terjadwal",
+  called: "Dipanggil",
+  ongoing: "Berlangsung",
+  finished: "Selesai",
+};
+
+function groupKey(group: GroupCard, index?: number) {
+  return String(group.id ?? group.group_id ?? `local-${index ?? 0}`);
+}
+
+function athleteKey(athlete: AthleteCard) {
+  return String(athlete.id ?? athlete.client_id ?? athlete.nama);
+}
+
+function genderLabel(gender: number) {
+  return gender === 0 ? "Laki-laki" : "Perempuan";
+}
+
+const sabukLabels: Record<number, string> = {
+  0: "PUTIH",
+  1: "KUNING",
+  2: "KUNING STRIP",
+  3: "HIJAU",
+  4: "HIJAU STRIP",
+  5: "BIRU",
+  6: "BIRU STRIP",
+  7: "MERAH",
+  8: "MERAH STRIP I",
+  9: "MERAH STRIP II",
+  10: "DAN I",
+  11: "DAN II",
+};
+
+function normalizeSabukCode(value: unknown) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric >= 0 && numeric <= 11) {
+    return numeric;
+  }
+
+  const text = String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const labelMap: Record<string, number> = {
+    putih: 0,
+    white: 0,
+    kuning: 1,
+    yellow: 1,
+    kuningstrip: 2,
+    yellowstrip: 2,
+    hijau: 3,
+    green: 3,
+    hijaustrip: 4,
+    greenstrip: 4,
+    biru: 5,
+    blue: 5,
+    birustrip: 6,
+    bluestrip: 6,
+    merah: 7,
+    red: 7,
+    merahstripi: 8,
+    merahstrip1: 8,
+    redstripi: 8,
+    merahstripii: 9,
+    merahstrip2: 9,
+    redstripii: 9,
+    dani: 10,
+    dan1: 10,
+    danii: 11,
+    dan2: 11,
+  };
+
+  if (labelMap[text] !== undefined) return labelMap[text];
+  if (text.includes("merahstripii") || text.includes("merahstrip2")) return 9;
+  if (text.includes("merahstripi") || text.includes("merahstrip1")) return 8;
+  if (text.includes("danii") || text.includes("dan2")) return 11;
+  if (text.includes("dani") || text.includes("dan1")) return 10;
+  for (const [label, code] of Object.entries(labelMap).sort((a, b) => b[0].length - a[0].length)) {
+    if (text.includes(label)) return code;
+  }
+
+  return 0;
+}
+
+function sabukText(athlete: Partial<AthleteCard>) {
+  const code = normalizeSabukCode(athlete.sabuk);
+  const label = athlete.sabuk_display || sabukLabels[code] || "PUTIH";
+  return `SABUK ${code} - ${label}`;
+}
+
+function normalizeGroup(raw: any, index: number): GroupCard {
+  const assignments = Array.isArray(raw.assignments) ? raw.assignments : [];
+  const athletes = assignments.length
+    ? assignments.map((assignment: any) => ({
+        ...(assignment.athlete_detail || {}),
+        sabuk: normalizeSabukCode(assignment.athlete_detail?.sabuk),
+        sabuk_display: assignment.athlete_detail?.sabuk_display || sabukLabels[normalizeSabukCode(assignment.athlete_detail?.sabuk)],
+        gender_display: assignment.athlete_detail?.gender_display,
+        kontingen: assignment.athlete_detail?.kontingen ?? assignment.athlete_detail?.Kontingen ?? "",
+        klub: assignment.athlete_detail?.klub ?? assignment.athlete_detail?.Klub ?? assignment.athlete_detail?.Club ?? "",
+        class_level: String(assignment.athlete_detail?.class_level ?? assignment.athlete_detail?.Kelas ?? "1"),
+        position: assignment.position,
+      }))
+    : (raw.athletes || []).map((a: any, athleteIndex: number) => ({
+        ...a,
+        sabuk: normalizeSabukCode(a.sabuk),
+        sabuk_display: a.sabuk_display || sabukLabels[normalizeSabukCode(a.sabuk)],
+        gender_display: a.gender_display,
+        kontingen: a.kontingen ?? a.Kontingen ?? "",
+        klub: a.klub ?? a.Klub ?? a.Club ?? "",
+        class_level: String(a.class_level ?? a.Kelas ?? "1"),
+        position: a.position ?? athleteIndex + 1,
+      }));
+
+  return {
+    id: raw.id,
+    group_id: raw.group_id ?? raw.id ?? index + 1,
+    group_name: raw.group_name || raw.category_name || `Grup ${index + 1}`,
+    match_category: (raw.match_category || "kyourugi") as Category,
+    gender: Number(raw.gender ?? athletes[0]?.gender ?? 0),
+    gender_display: raw.gender_display || genderLabel(Number(raw.gender ?? athletes[0]?.gender ?? 0)),
+    sort_order: Number(raw.sort_order ?? index + 1),
+    athlete_count: raw.athlete_count ?? athletes.length,
+    age_min: raw.age_min,
+    age_max: raw.age_max,
+    height_min: raw.height_min,
+    height_max: raw.height_max,
+    weight_min: raw.weight_min,
+    weight_max: raw.weight_max,
+    fairness_score: raw.fairness_score,
+    is_manual: raw.is_manual,
+    athletes,
+    matches: Array.isArray(raw.matches) ? raw.matches : raw.simulated_bracket,
+  };
+}
+
+function groupMetric(group: GroupCard, sortBy: SortBy) {
+  const athletes = Array.isArray(group.athletes) ? group.athletes : [];
+  const ages = athletes.map((a) => a.umur || 0);
+  const heights = athletes.map((a) => a.tinggi_cm || 0);
+  const weights = athletes.map((a) => a.berat_kg || 0);
+
+  if (sortBy === "age") return group.age_min ?? (ages.length ? Math.min(...ages) : 0);
+  if (sortBy === "gender") return group.gender;
+  if (sortBy === "height") return group.height_min ?? (heights.length ? Math.min(...heights) : 0);
+  return group.weight_min ?? (weights.length ? Math.min(...weights) : 0);
+}
+
+export default function MatchesPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [groups, setGroups] = useState<GroupCard[]>([]);
+  const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [rounds, setRounds] = useState<RoundRow[]>([]);
+  const [athletes, setAthletes] = useState<AthleteCard[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category>("kyourugi");
+  const [sortBy, setSortBy] = useState<SortBy>("weight");
+  const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [selectedMatchIds, setSelectedMatchIds] = useState<number[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [matchPage, setMatchPage] = useState(1);
+  const [matchTotalPages, setMatchTotalPages] = useState(1);
+  const [groupPage, setGroupPage] = useState(1);
+  const [groupTotalPages, setGroupTotalPages] = useState(1);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user || (user.role !== "match" && user.role !== "superadmin")) {
+        router.push("/dashboard");
+      } else {
+        setAuthChecked(true);
+      }
+    }
+  }, [user, authLoading, router]);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+  // --- ATHLETE DASHBOARD & MANAGEMENT STATE ---
+  const [athleteSearch, setAthleteSearch] = useState("");
+  const [athleteGenderFilter, setAthleteGenderFilter] = useState("all");
+  const [athleteBeltFilter, setAthleteBeltFilter] = useState("all");
+  const [athleteClubFilter, setAthleteClubFilter] = useState("all");
+  const [athleteAgeMin, setAthleteAgeMin] = useState("");
+  const [athleteAgeMax, setAthleteAgeMax] = useState("");
+  const [athleteWeightMin, setAthleteWeightMin] = useState("");
+  const [athleteWeightMax, setAthleteWeightMax] = useState("");
+  const [athleteHeightMin, setAthleteHeightMin] = useState("");
+  const [athleteHeightMax, setAthleteHeightMax] = useState("");
+  
+  const [editingAthlete, setEditingAthlete] = useState<AthleteCard | null>(null);
+  const [athleteDialogOpen, setAthleteDialogOpen] = useState(false);
+
+  const stats = useMemo(() => {
+    const total = athletes.length;
+    const male = athletes.filter(a => a.gender === 0).length;
+    const female = athletes.filter(a => a.gender === 1).length;
+    const kyorugi = athletes.filter(a => a.category === 0).length;
+    const poomsae = athletes.filter(a => a.category === 1).length;
+    const prestasi = athletes.filter(a => a.class_level === '1').length;
+    const pemula = athletes.filter(a => a.class_level === '0').length;
+    const groupsCount = groups.length;
+    
+    return { total, male, female, kyorugi, poomsae, prestasi, pemula, groupsCount };
+  }, [athletes, groups]);
+
+  const uniqueClubs = useMemo(() => {
+    const clubs = athletes.map(a => a.klub).filter(Boolean) as string[];
+    return Array.from(new Set(clubs)).sort();
+  }, [athletes]);
+
+  const filteredAthleteList = useMemo(() => {
+    return athletes.filter(a => {
+      const matchesSearch = !athleteSearch || 
+        a.nama.toLowerCase().includes(athleteSearch.toLowerCase()) ||
+        (a.klub || "").toLowerCase().includes(athleteSearch.toLowerCase());
+      
+      const matchesGender = athleteGenderFilter === "all" || String(a.gender) === athleteGenderFilter;
+      const matchesBelt = athleteBeltFilter === "all" || String(a.sabuk) === athleteBeltFilter;
+      const matchesClub = athleteClubFilter === "all" || a.klub === athleteClubFilter;
+      
+      const ageMin = athleteAgeMin ? parseInt(athleteAgeMin) : 0;
+      const ageMax = athleteAgeMax ? parseInt(athleteAgeMax) : 100;
+      const matchesAge = a.umur >= ageMin && a.umur <= ageMax;
+
+      const weightMin = athleteWeightMin ? parseFloat(athleteWeightMin) : 0;
+      const weightMax = athleteWeightMax ? parseFloat(athleteWeightMax) : 500;
+      const matchesWeight = a.berat_kg >= weightMin && a.berat_kg <= weightMax;
+
+      const heightMin = athleteHeightMin ? parseFloat(athleteHeightMin) : 0;
+      const heightMax = athleteHeightMax ? parseFloat(athleteHeightMax) : 300;
+      const matchesHeight = a.tinggi_cm >= heightMin && a.tinggi_cm <= heightMax;
+      
+      return matchesSearch && matchesGender && matchesBelt && matchesClub && matchesAge && matchesWeight && matchesHeight;
+    });
+  }, [athletes, athleteSearch, athleteGenderFilter, athleteBeltFilter, athleteClubFilter, athleteAgeMin, athleteAgeMax, athleteWeightMin, athleteWeightMax, athleteHeightMin, athleteHeightMax]);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [matchDialogOpen, setMatchDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<GroupCard | null>(null);
+  const [editingMatch, setEditingMatch] = useState<MatchRow | null>(null);
+  const [groupForm, setGroupForm] = useState({ name: "", gender: "0" });
+  const [draggedAthlete, setDraggedAthlete] = useState<{ athleteId: string; fromGroup: string } | null>(null);
+  const [previewSearch, setPreviewSearch] = useState("");
+  const [previewGender, setPreviewGender] = useState<string>("all");
+  const [previewClass, setPreviewClass] = useState<string>("all");
+  const [poomsaePool, setPoomsaePool] = useState<AthleteCard[]>([]);
+  const [selectedPoolAthletes, setSelectedPoolAthletes] = useState<string[]>([]);
+  const [poolSabukFilter, setPoolSabukFilter] = useState<string>("all");
+  const [poolAgeFilter, setPoolAgeFilter] = useState<string>("all");
+  const [poolSearch, setPoolSearch] = useState("");
+  const [activePoolTab, setActivePoolTab] = useState<"available" | "selected">("available");
+  const [arenas, setArenas] = useState<any[]>([]);
+  
+  const [mainSearch, setMainSearch] = useState("");
+  const [mainGenderFilter, setMainGenderFilter] = useState("all");
+  const [matchSearch, setMatchSearch] = useState("");
+  const [matchStatusFilter, setMatchStatusFilter] = useState("all");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [isDeletingGroups, setIsDeletingGroups] = useState(false);
+  const [progressMessage, setProgressMessage] = useState<string>("");
+  const [realtimeStats, setRealtimeStats] = useState({
+    total_athletes: 0,
+    total_groups: 0,
+    total_matches: 0,
+    total_arenas: 0
+  });
+  const [matchForm, setMatchForm] = useState({ round: "", match_number: "1", bout_number: "", status: "scheduled", red: "", blue: "", arena: "" });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    setMatchPage(1);
+  }, [matchSearch, matchStatusFilter, selectedCategory]);
+
+  useEffect(() => {
+    setGroupPage(1);
+  }, [mainSearch, mainGenderFilter, selectedCategory]);
+
+  const filteredMatches = matches;
+
+  const filteredGroups = groups;
+
+  const groupedMatches = useMemo(() => {
+    return matches.reduce<Record<string, MatchRow[]>>((acc, match) => {
+      const key = match.status || "scheduled";
+      acc[key] = acc[key] || [];
+      acc[key].push(match);
+      return acc;
+    }, {});
+  }, [matches]);
+
+  const loadGroups = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&page=${groupPage}&sort_by=${sortBy}`;
+      if (mainSearch) url += `&search=${encodeURIComponent(mainSearch)}`;
+      if (mainGenderFilter !== "all") url += `&gender=${mainGenderFilter}`;
+      
+      const res = await fetchWithAuth(url);
+      if (res.ok) {
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : (data.results || []);
+        setGroups(results.map((item: any, index: number) => normalizeGroup(item, index)));
+        if (data.count) setGroupTotalPages(Math.ceil(data.count / 20));
+      }
+    } catch {
+      toast.error("Gagal memuat kelompok.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [selectedCategory, normalizeGroup, groupPage, mainSearch, mainGenderFilter, sortBy]);
+
+  const loadMatches = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      let url = `/matches/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&page=${matchPage}`;
+      if (matchSearch) url += `&search=${encodeURIComponent(matchSearch)}`;
+      if (matchStatusFilter !== "all") url += `&status=${matchStatusFilter}`;
+
+      const res = await fetchWithAuth(url);
+      if (res.ok) {
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : (data.results || []);
+        setMatches(results);
+        if (data.count) setMatchTotalPages(Math.ceil(data.count / 20));
+      }
+    } catch {
+      toast.error("Gagal memuat match.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [selectedCategory, matchPage, matchSearch, matchStatusFilter]);
+
+  const loadRounds = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const res = await fetchWithAuth(`/matches/rounds/?tournament=${TOURNAMENT_ID}&match_category=${selectedCategory}`);
+      if (res.ok) {
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : (data.results || []);
+        setRounds(results);
+      }
+    } catch {
+      toast.error("Gagal memuat ronde.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [selectedCategory]);
+
+  const loadAthletes = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth(`/athletes/?tournament=${TOURNAMENT_ID}`);
+      if (res.ok) {
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : (data.results || []);
+        setAthletes(results);
+      }
+    } catch (e) {
+        console.error("Gagal memuat atlet:", e);
+    }
+  }, []);
+
+  const loadArenas = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth(`/arenas/?tournament=${TOURNAMENT_ID}`);
+      if (res.ok) {
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : (data.results || []);
+        setArenas(results);
+      }
+    } catch (e) {
+      console.error("Gagal memuat arena:", e);
+    }
+  }, []);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setSelectedGroupIds([]); // Clear selection on reload
+    try {
+      await Promise.all([loadGroups(true), loadMatches(true), loadRounds(true), loadAthletes(), loadArenas()]);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadGroups, loadMatches, loadRounds, loadAthletes, loadArenas]);
+
+  useEffect(() => {
+    loadAll();
+  }, [selectedCategory, sortBy, matchPage, groupPage]);
+
+  // --- Real-time Real-time (Zero Latency) ---
+  useRealtime(TOURNAMENT_ID, useCallback((event, data) => {
+    if (["processing_start", "processing_parsing", "processing_clustering", "processing_complete"].includes(event)) {
+      setProgressMessage(data?.message || "");
+      if (event === "processing_complete") {
+        setTimeout(() => setProgressMessage(""), 3000);
+      }
+    }
+    
+    if (event === "processing_error") {
+      toast.error(data?.message || "Gagal memproses data.");
+      setProgressMessage("");
+      setUploading(false);
+    }
+    
+    // Direct Data Updates (Zero Latency - No API Fetch)
+    if (event === "groups_confirmed" && data?.groups) {
+      setGroups(data.groups.map((item: any, index: number) => normalizeGroup(item, index)));
+      setHasUnsavedChanges(false);
+      setUploading(false);
+      return;
+    }
+
+    if (["match_updated", "match_created", "match_called", "match_started", "match_finished"].includes(event) && data?.id) {
+      setMatches(prev => {
+        const results = Array.isArray(prev) ? prev : [];
+        const exists = results.find(m => m.id === data.id);
+        if (exists) {
+          return results.map(m => m.id === data.id ? { ...m, ...data } : m);
+        }
+        if (event === "match_created") {
+          return [...results, data];
+        }
+        return results;
+      });
+      
+      // Update groups locally if match affects group status
+      if (data.status === "finished") {
+        setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => {
+          if (g.group_name === data.group_name) {
+            return { ...g, status: "updated" }; 
+          }
+          return g;
+        }));
+      }
+      return;
+    }
+
+    if (event === "bulk_athlete_deleted") {
+      const isReset = data?.is_reset;
+      if (isReset) {
+        setGroups([]);
+        setMatches([]);
+        setRealtimeStats({
+          total_athletes: 0,
+          total_groups: 0,
+          total_matches: 0,
+          total_arenas: 0
+        });
+      } else {
+        // If specific IDs deleted, refresh everything to be safe
+        loadGroups(true);
+        loadMatches(true);
+      }
+      return;
+    }
+
+    if (event === "match_deleted" && data?.id) {
+      setMatches(prev => prev.filter(m => m.id !== data.id));
+      return;
+    }
+
+    if (event === "bulk_match_deleted") {
+      loadMatches(true);
+      return;
+    }
+
+    if (event === "bulk_group_deleted") {
+      loadGroups(true);
+      return;
+    }
+    
+    if (event === "group_updated" && data?.id) {
+      setGroups(prev => prev.map(g => g.id === data.id ? normalizeGroup(data, 0) : g));
+      return;
+    }
+
+    if (event === "group_deleted" && data?.id) {
+      setGroups(prev => prev.filter(g => g.id !== data.id));
+      return;
+    }
+
+    if (event === "athlete_checkin") {
+      const isHadir = data?.is_checked_in;
+      const athleteId = parseInt(data.id || data.athlete_id);
+
+      // 🛡️ Only show toast for the initial fast-feedback broadcast
+      if (isHadir && !data?.final_sync) {
+        toast.success(`${data.nama || 'Atlet'} (${data.kontingen || 'Umum'}) sudah hadir!`, {
+          id: `athlete-checkin-${athleteId}`,
+          description: "Atlet siap untuk dipanggil tanding.",
+          duration: 5000,
+        });
+      }
+
+      // ⚡ REALTIME STATE UPDATE (No API Fetch needed)
+      // 1. Update Athletes list
+      setAthletes(prev => (Array.isArray(prev) ? prev : []).map(a => a.id === athleteId ? { ...a, is_checked_in: isHadir } : a));
+
+      // 2. Update Matches list
+      setMatches(prev => (Array.isArray(prev) ? prev : []).map(m => ({
+        ...m,
+        participants: (m.participants || []).map(p => 
+          p.athlete === athleteId || p.athlete_detail?.id === athleteId
+          ? { ...p, athlete_detail: p.athlete_detail ? { ...p.athlete_detail, is_checked_in: isHadir } : p.athlete_detail }
+          : p
+        )
+      })));
+
+      // 3. Update Groups list (Updating 'athletes' key which is used by GroupCard)
+      setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => ({
+        ...g,
+        athletes: (g.athletes || []).map(a => 
+          a.id === athleteId ? { ...a, is_checked_in: isHadir } : a
+        )
+      })));
+    }
+
+    if (event === "athlete_created") {
+      toast.info(`📢 ${data.nama} (${data.kontingen || 'UMUM'}) baru saja mendaftar!`, {
+        id: `created-${data.id}`,
+        description: `Kategori: ${data.category}`,
+        duration: 5000,
+      });
+      loadAthletes();
+    }
+
+    if (event === "match_finished") {
+      toast.success(`🏆 ${data.winner_name} memenangkan partai #${data.bout_number || data.match_number}!`, {
+        id: `match-${data.id}`,
+        description: `Sudut ${data.winner_corner?.toUpperCase()} melaju ke babak selanjutnya.`,
+        duration: 8000,
+      });
+    }
+  }, [normalizeGroup, loadAthletes]));
+
+  const applySort = (value: SortBy) => {
+    setSortBy(value);
+    setGroups((current) =>
+      [...current]
+        .sort((a, b) => groupMetric(a, value) - groupMetric(b, value))
+        .map((group, index) => ({ ...group, sort_order: index + 1 })),
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const moveAthlete = (fromGroupKey: string, targetGroupKey: string, selectedAthleteKey: string) => {
+    if (fromGroupKey === targetGroupKey) return;
+
+    const source = groups.find((group, index) => groupKey(group, index) === fromGroupKey);
+    const target = groups.find((group, index) => groupKey(group, index) === targetGroupKey);
+    const athlete = source?.athletes.find((item) => athleteKey(item) === selectedAthleteKey);
+    if (!source || !target || !athlete) return;
+
+    if (target.athletes.length > 0 && target.gender !== athlete.gender) {
+      toast.error("Gender dalam satu kelompok wajib sama.");
+      return;
+    }
+
+    setGroups((current) =>
+      current.map((group, index) => {
+        const key = groupKey(group, index);
+        if (key === fromGroupKey) {
+          return { ...group, athletes: group.athletes.filter((item) => athleteKey(item) !== selectedAthleteKey) };
+        }
+        if (key === targetGroupKey) {
+          return {
+            ...group,
+            gender: athlete.gender,
+            gender_display: genderLabel(athlete.gender),
+            athletes: [...group.athletes, { ...athlete, position: group.athletes.length + 1 }],
+          };
+        }
+        return group;
+      }),
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const removeAthlete = (targetGroupKey: string, selectedAthleteKey: string) => {
+    if (selectedCategory === "poomsae") {
+      returnToPool(targetGroupKey, selectedAthleteKey);
+      return;
+    }
+    setGroups((current) =>
+      current.map((group, index) =>
+        groupKey(group, index) === targetGroupKey
+          ? { ...group, athletes: group.athletes.filter((athlete) => athleteKey(athlete) !== selectedAthleteKey) }
+          : group,
+      ),
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile && (droppedFile.name.endsWith(".csv") || droppedFile.name.endsWith(".xls") || droppedFile.name.endsWith(".xlsx"))) {
+      setFile(droppedFile);
+    } else {
+      toast.error("Format file tidak didukung. Gunakan CSV, XLS, atau XLSX.");
+    }
+  };
+
+  const clearAllGroups = () => {
+    setGroups([]);
+    toast.info("Semua kelompok dibersihkan. Silakan buat kelompok manual.");
+  };
+
+  const createManualGroup = () => {
+    if (selectedPoolAthletes.length === 0) {
+      toast.error("Pilih setidaknya satu atlet.");
+      return;
+    }
+
+    const selectedAthletesData = poomsaePool.filter(a => selectedPoolAthletes.includes(athleteKey(a)));
+    
+    // Auto-name based on belt and age if they match, else generic
+    const first = selectedAthletesData[0];
+    const allSameSabuk = selectedAthletesData.every(a => a.sabuk === first.sabuk);
+    const allSameAge = selectedAthletesData.every(a => a.umur === first.umur);
+    
+    let groupName = `Kelompok ${groups.length + 1}`;
+    if (allSameSabuk && allSameAge) {
+      groupName = `Poomsae Sabuk ${first.sabuk} ${first.umur}th - ${groups.length + 1}`;
+    }
+
+    const newGroup: GroupCard = {
+      group_id: Date.now(),
+      group_name: groupName,
+      match_category: selectedCategory,
+      gender: first.gender,
+      gender_display: genderLabel(first.gender),
+      sort_order: groups.length + 1,
+      athletes: selectedAthletesData,
+      is_manual: true
+    };
+
+    setGroups([...groups, newGroup]);
+    
+    // Remove from pool
+    setPoomsaePool(poomsaePool.filter(a => !selectedPoolAthletes.includes(athleteKey(a))));
+    setSelectedPoolAthletes([]);
+    toast.success(`${selectedAthletesData.length} atlet dimasukkan ke ${groupName}`);
+  };
+
+  const togglePoolAthlete = (id: string) => {
+    setSelectedPoolAthletes(prev => 
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
+
+  const returnToPool = (groupKeyVal: string, athleteId: string) => {
+    const group = groups.find((g, idx) => groupKey(g, idx) === groupKeyVal);
+    if (!group) return;
+
+    const athlete = group.athletes.find(a => athleteKey(a) === athleteId);
+    if (!athlete) return;
+
+    // Remove from group
+    const newGroups = groups.map((g, idx) => {
+      if (groupKey(g, idx) === groupKeyVal) {
+        return { ...g, athletes: g.athletes.filter(a => athleteKey(a) !== athleteId) };
+      }
+      return g;
+    }).filter(g => g.athletes.length > 0);
+
+    setGroups(newGroups);
+    setPoomsaePool([...poomsaePool, athlete]);
+    toast.info(`${athlete.nama} dikembalikan ke pool.`);
+  };
+
+  const handlePreviewUpload = async () => {
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tournament_id", String(TOURNAMENT_ID));
+    formData.append("category", selectedCategory);
+
+    try {
+      setGroups([]); // Clear old groups
+      setPreviewDialogOpen(true); // Open dialog immediately to show progress
+      setUploadDialogOpen(false);
+      
+      setProgressMessage("Mengunggah file...");
+      const res = await fetchWithAuth("/matchmaking/preview-upload/", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Gagal memproses file.");
+        setProgressMessage("");
+        setPreviewDialogOpen(false); // Close if error
+        return;
+      }
+      const normalized = (data.groups || []).map((item: any, index: number) => normalizeGroup(item, index));
+      setGroups(normalized);
+      
+      // If poomsae, also prepare the pool (all athletes)
+      if (selectedCategory === "poomsae") {
+        const allAthletes = normalized.flatMap((g: any) => g.athletes);
+        setPoomsaePool(allAthletes);
+      } else {
+        setPoomsaePool([]);
+      }
+
+      setHasUnsavedChanges(true);
+      toast.success("Preview grouping siap dicek.");
+    } catch {
+      toast.error("Tidak dapat menghubungi backend.");
+      setPreviewDialogOpen(false);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleConfirmGroups = async () => {
+    setSaving(true);
+    const payloadGroups = groups.map((group, index) => ({
+      ...group,
+      group_name: group.group_name,
+      sort_order: index + 1,
+      athletes: group.athletes.map((athlete, athleteIndex) => ({
+        ...athlete,
+        position: athleteIndex + 1,
+      })),
+    }));
+
+    try {
+      const res = await fetchWithAuth("/matchmaking/confirm-groups/", {
+        method: "POST",
+        body: JSON.stringify({
+          tournament_id: TOURNAMENT_ID,
+          category: selectedCategory,
+          replace_existing: true,
+          groups: payloadGroups,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Gagal menyimpan grouping.");
+        return;
+      }
+      setGroups((data.groups || []).map((item: any, index: number) => normalizeGroup(item, index)));
+      setPreviewDialogOpen(false);
+      setHasUnsavedChanges(false);
+      await Promise.all([loadMatches(), loadRounds()]);
+      toast.success("Grouping tersimpan dan bracket dibuat.");
+    } catch {
+      toast.error("Tidak dapat menyimpan grouping.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openGroupDialog = (group?: GroupCard) => {
+    setEditingGroup(group || null);
+    setGroupForm({ name: group?.group_name || "", gender: String(group?.gender ?? 0) });
+    setGroupDialogOpen(true);
+  };
+
+  const saveGroup = async () => {
+    const body = {
+      tournament: TOURNAMENT_ID,
+      category_name: groupForm.name || `${selectedCategory} Grup`,
+      match_category: selectedCategory,
+      gender: Number(groupForm.gender),
+      weight_min: editingGroup?.weight_min ?? 0,
+      weight_max: editingGroup?.weight_max ?? 0,
+      age_min: editingGroup?.age_min ?? 0,
+      age_max: editingGroup?.age_max ?? 0,
+      height_min: editingGroup?.height_min ?? 0,
+      height_max: editingGroup?.height_max ?? 0,
+      sort_order: editingGroup?.sort_order ?? groups.length + 1,
+      source: "manual",
+      is_confirmed: true,
+    };
+
+    if (!editingGroup?.id) {
+      const localGroup: GroupCard = {
+        group_id: Date.now(),
+        group_name: body.category_name,
+        match_category: selectedCategory,
+        gender: body.gender,
+        gender_display: genderLabel(body.gender),
+        sort_order: body.sort_order,
+        athletes: [],
+      };
+      setGroups((current) => [...current, localGroup]);
+      setHasUnsavedChanges(true);
+      setGroupDialogOpen(false);
+      return;
+    }
+
+    const res = await fetchWithAuth(`/matches/weight-classes/${editingGroup.id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      toast.success("Kelompok diperbarui.");
+      setGroupDialogOpen(false);
+      loadGroups();
+    } else {
+      toast.error("Gagal menyimpan kelompok.");
+    }
+  };
+
+  const deleteGroup = async (group: GroupCard) => {
+    if (!group.id) {
+      setGroups((current) => current.filter((item) => item !== group));
+      setHasUnsavedChanges(true);
+      return;
+    }
+
+    const res = await fetchWithAuth(`/matches/weight-classes/${group.id}/`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("Kelompok dihapus.");
+      setSelectedGroupIds(prev => prev.filter(id => id !== groupKey(group)));
+      loadAll();
+    } else {
+      toast.error("Gagal menghapus kelompok.");
+    }
+  };
+
+  const openMatchDialog = (match?: MatchRow) => {
+    const red = match?.participants.find((participant) => participant.corner === "red");
+    const blue = match?.participants.find((participant) => participant.corner === "blue");
+    setEditingMatch(match || null);
+    setMatchForm({
+      round: String(match?.round ?? rounds[0]?.id ?? ""),
+      match_number: String(match?.match_number ?? 1),
+      bout_number: String(match?.bout_number ?? ""),
+      status: match?.status || "scheduled",
+      red: red?.athlete ? String(red.athlete) : "",
+      blue: blue?.athlete ? String(blue.athlete) : "",
+      arena: match?.arena ? String(match.arena) : "",
+    });
+    setMatchDialogOpen(true);
+  };
+
+  const saveMatch = async () => {
+    const participants = [
+      ...(matchForm.red && matchForm.red !== "0" ? [{ athlete: Number(matchForm.red), corner: "red" }] : []),
+      ...(matchForm.blue && matchForm.blue !== "0" ? [{ athlete: Number(matchForm.blue), corner: "blue" }] : []),
+    ];
+
+    if (!matchForm.round || participants.length === 0) {
+      toast.error("Ronde dan minimal satu atlet wajib diisi.");
+      return;
+    }
+    const body = {
+      round: Number(matchForm.round),
+      arena: matchForm.arena ? Number(matchForm.arena) : null,
+      match_number: Number(matchForm.match_number),
+      bout_number: matchForm.bout_number ? Number(matchForm.bout_number) : null,
+      status: matchForm.status,
+      participants_write: participants,
+    };
+    const endpoint = editingMatch?.id ? `/matches/${editingMatch.id}/` : "/matches/";
+    const method = editingMatch?.id ? "PATCH" : "POST";
+    const res = await fetchWithAuth(endpoint, { method, body: JSON.stringify(body) });
+    if (res.ok) {
+      toast.success("Match tersimpan.");
+      setMatchDialogOpen(false);
+      loadMatches();
+    } else {
+      toast.error("Gagal menyimpan match.");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedMatchIds.length === 0) return;
+    if (!confirm(`Hapus ${selectedMatchIds.length} pertandingan terpilih?`)) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetchWithAuth(`/matches/bulk-delete/?tournament=${TOURNAMENT_ID}`, {
+        method: "DELETE",
+        body: JSON.stringify({ ids: selectedMatchIds }),
+      });
+
+      if (res.ok) {
+        toast.success(`${selectedMatchIds.length} pertandingan dihapus.`);
+        setSelectedMatchIds([]);
+        // Websocket will handle the state update, but we call loadMatches for safety
+        loadMatches();
+      } else {
+        toast.error("Gagal menghapus pertandingan.");
+      }
+    } catch {
+      toast.error("Gagal menghubungi server.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectMatch = (matchId: number) => {
+    setSelectedMatchIds(prev => 
+      prev.includes(matchId) 
+        ? prev.filter(id => id !== matchId)
+        : [...prev, matchId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const allFilteredSelected = filteredMatches.length > 0 && filteredMatches.every(m => selectedMatchIds.includes(m.id));
+    if (allFilteredSelected) {
+      setSelectedMatchIds(prev => prev.filter(id => !filteredMatches.some(m => m.id === id)));
+    } else {
+      const newIds = Array.from(new Set([...selectedMatchIds, ...filteredMatches.map(m => m.id)]));
+      setSelectedMatchIds(newIds);
+    }
+  };
+
+  const toggleSelectGroup = (groupId: string) => {
+    setSelectedGroupIds(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
+  const toggleSelectAllGroups = () => {
+    const allFilteredSelected = filteredGroups.length > 0 && filteredGroups.every((g, idx) => selectedGroupIds.includes(groupKey(g, idx)));
+    if (allFilteredSelected) {
+      setSelectedGroupIds(prev => prev.filter(id => !filteredGroups.some((g, idx) => groupKey(g, idx) === id)));
+    } else {
+      const newIds = Array.from(new Set([...selectedGroupIds, ...filteredGroups.map((g, idx) => groupKey(g, idx))]));
+      setSelectedGroupIds(newIds);
+    }
+  };
+
+  const handleBulkDeleteGroups = async () => {
+    if (selectedGroupIds.length === 0) return;
+    if (!window.confirm(`Hapus ${selectedGroupIds.length} kelompok terpilih?`)) return;
+
+    setIsDeletingGroups(true);
+    try {
+      const idsToDelete = groups
+        .filter((g, idx) => selectedGroupIds.includes(groupKey(g, idx)) && g.id)
+        .map(g => g.id);
+      
+      if (idsToDelete.length > 0) {
+        const res = await fetchWithAuth(`/matches/weight_classes/bulk-delete/?tournament=${TOURNAMENT_ID}`, {
+          method: "DELETE",
+          body: JSON.stringify({ ids: idsToDelete })
+        });
+        
+        if (!res.ok) {
+           const errorData = await res.json().catch(() => ({}));
+           toast.error(errorData.error || "Gagal menghapus beberapa kelompok dari server.");
+           setIsDeletingGroups(false);
+           return;
+        }
+      }
+
+      setGroups(prev => prev.filter((g, idx) => !selectedGroupIds.includes(groupKey(g, idx))));
+      setSelectedGroupIds([]);
+      toast.success(`${selectedGroupIds.length} kelompok berhasil dihapus`);
+      
+      await loadAll();
+    } catch (error) {
+      console.error("Failed to bulk delete groups:", error);
+      toast.error("Gagal menghapus beberapa kelompok");
+    } finally {
+      setIsDeletingGroups(false);
+    }
+  };
+
+
+  const handleResetTournamentData = async () => {
+    if (!window.confirm("PERHATIAN: Ini akan menghapus SEMUA data atlet dan kelompok di tournament ini. Data yang sudah dihapus tidak bisa dikembalikan. Lanjutkan?")) return;
+    if (!window.confirm("APAKAH ANDA YAKIN? Semua bracket dan jadwal akan hilang.")) return;
+
+    setSaving(true);
+    try {
+      // 1. Delete all groups
+      const resGroups = await fetchWithAuth(`/matches/weight_classes/bulk-delete/?tournament=${TOURNAMENT_ID}`, {
+        method: "DELETE",
+        body: JSON.stringify({ ids: [] })
+      });
+
+      if (!resGroups.ok) {
+        const errorData = await resGroups.json().catch(() => ({}));
+        throw new Error(errorData.error || "Gagal menghapus kelompok.");
+      }
+
+      // 2. Delete all athletes
+      const resAthletes = await fetchWithAuth(`/athletes/bulk-delete/?tournament=${TOURNAMENT_ID}`, {
+        method: "DELETE",
+        body: JSON.stringify({ ids: [] })
+      });
+
+      if (!resAthletes.ok) {
+        const errorData = await resAthletes.json().catch(() => ({}));
+        throw new Error(errorData.error || "Gagal menghapus atlet.");
+      }
+
+      toast.success("Seluruh data tournament berhasil direset.");
+      setSelectedGroupIds([]);
+      setGroups([]);
+      setHasUnsavedChanges(false);
+      await loadAll();
+    } catch (error: any) {
+      console.error("Reset error:", error);
+      toast.error(error.message || "Gagal mereset data.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteAthlete = async (athleteId: number | string) => {
+    if (!window.confirm("Hapus atlet ini secara permanen dari database?")) return;
+    
+    try {
+      const res = await fetchWithAuth(`/athletes/${athleteId}/`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Atlet berhasil dihapus permanen.");
+        // Remove from local groups
+        setGroups(prev => prev.map(g => ({
+          ...g,
+          athletes: g.athletes.filter(a => a.id !== Number(athleteId))
+        })));
+        await loadAll();
+      } else {
+        toast.error("Gagal menghapus atlet.");
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan.");
+    }
+  };
+
+  const openAthleteDialog = (athlete: AthleteCard) => {
+    setEditingAthlete(athlete);
+    setAthleteDialogOpen(true);
+  };
+
+  const saveAthlete = async (formData: any) => {
+    if (!editingAthlete?.id) return;
+    setSaving(true);
+    try {
+      const res = await fetchWithAuth(`/athletes/${editingAthlete.id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        toast.success("Data atlet berhasil diperbarui.");
+        setAthleteDialogOpen(false);
+        await loadAll();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal memperbarui atlet.");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteMatch = async (match: MatchRow) => {
+    if (!window.confirm("Hapus pertandingan ini secara permanen?")) return;
+    const res = await fetchWithAuth(`/matches/${match.id}/`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("Match dihapus.");
+      loadMatches();
+    } else {
+      toast.error("Gagal menghapus match.");
+    }
+  };
+
+  const callMatchAction = async (match: MatchRow, action: "call" | "start") => {
+    const res = await fetchWithAuth(`/matches/${match.id}/${action}/`, { method: "POST" });
+    if (res.ok) {
+      toast.success(action === "call" ? "Partai dipanggil." : "Pertandingan dimulai.");
+      loadMatches();
+    }
+  };
+
+  const finishMatch = async (match: MatchRow, participant: MatchParticipant) => {
+    const res = await fetchWithAuth(`/matches/${match.id}/finish/`, {
+      method: "POST",
+      body: JSON.stringify({ winner_id: participant.athlete, winner_corner: participant.corner }),
+    });
+    if (res.ok) {
+      toast.success("Pertandingan selesai.");
+      loadMatches();
+    }
+  };
+
+  const downloadWithAuth = async (endpoint: string, filename: string) => {
+    if (hasUnsavedChanges && !confirm("Ada perubahan grouping yang belum disimpan. Perubahan ini mungkin tidak muncul di export PDF. Lanjutkan?")) {
+      return;
+    }
+    const toastId = toast.loading("Sedang menyiapkan file export...");
+    try {
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        toast.error("Export gagal. Pastikan data sudah di-grouping.", { id: toastId });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Export berhasil!", { id: toastId });
+    } catch (err) {
+      toast.error("Terjadi kesalahan jaringan.", { id: toastId });
+    }
+  };
+
+  if (authLoading || !authChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-background noise-overlay">
+      <Navigation />
+
+      <div className="relative z-10 mx-auto max-w-[1400px] px-6 pb-16 pt-28 lg:px-10">
+        {/* DASHBOARD SUMMARY */}
+        <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8">
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
+              <h3 className="mt-1 text-2xl font-display">{stats.total}</h3>
+            </CardContent>
+          </Card>
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Putra / Putri</p>
+              <h3 className="mt-1 text-2xl font-display text-blue-500">{stats.male} <span className="text-muted-foreground/30 mx-1">/</span> <span className="text-pink-500">{stats.female}</span></h3>
+            </CardContent>
+          </Card>
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Kyorugi</p>
+              <h3 className="mt-1 text-2xl font-display">{stats.kyorugi}</h3>
+            </CardContent>
+          </Card>
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Poomsae</p>
+              <h3 className="mt-1 text-2xl font-display">{stats.poomsae}</h3>
+            </CardContent>
+          </Card>
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Prestasi</p>
+              <h3 className="mt-1 text-2xl font-display">{stats.prestasi}</h3>
+            </CardContent>
+          </Card>
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Pemula</p>
+              <h3 className="mt-1 text-2xl font-display">{stats.pemula}</h3>
+            </CardContent>
+          </Card>
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Kelompok</p>
+              <h3 className="mt-1 text-2xl font-display">{stats.groupsCount}</h3>
+            </CardContent>
+          </Card>
+          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md lg:hidden xl:block">
+            <CardContent className="p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Check-in</p>
+              <h3 className="mt-1 text-2xl font-display text-emerald-500">{athletes.filter(a => a.is_checked_in).length}</h3>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="mb-2 text-4xl font-display tracking-tight">Athlete Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Monitoring statistik, kelola data atlet, dan atur bagan pertandingan.</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as Category)}>
+              <SelectTrigger className="h-10 w-[160px] rounded-lg bg-background/70 border-foreground/10 focus:ring-0 transition-all">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="kyourugi">Kyourugi</SelectItem>
+                <SelectItem value="poomsae">Poomsae</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={(value) => applySort(value as SortBy)}>
+              <SelectTrigger className="h-10 w-[180px] rounded-lg bg-background/70 focus:ring-0 transition-all border-foreground/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="age">Urut usia</SelectItem>
+                <SelectItem value="gender">Urut gender</SelectItem>
+                <SelectItem value="weight">Urut berat</SelectItem>
+                <SelectItem value="height">Urut tinggi</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="h-10 rounded-lg" onClick={() => setCategoryDialogOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload
+            </Button>
+            <Button variant="outline" className="h-10 rounded-lg" onClick={() => openGroupDialog()}>
+              <Plus className="mr-2 h-4 w-4" />
+              Group
+            </Button>
+            <Button variant="outline" className="h-10 rounded-lg" onClick={() => downloadWithAuth(`/matches/weight_classes/export-all-pdf/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}`, `bracket-${selectedCategory}.pdf`)}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export PDF (Bagan)
+            </Button>
+             <Button variant="outline" className="h-10 rounded-lg border-destructive/20 text-destructive hover:bg-destructive/10" onClick={handleResetTournamentData} disabled={saving}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Reset Data
+            </Button>
+            <Button className="h-10 rounded-lg bg-foreground text-background hover:bg-foreground/90" disabled={!hasUnsavedChanges || saving} onClick={handleConfirmGroups}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Simpan
+            </Button>
+          </div>
+        </div>
+
+        <Tabs defaultValue="groups" className="space-y-6">
+          <TabsList className="rounded-lg bg-background/50 border border-foreground/5 p-1">
+            <TabsTrigger value="groups" className="rounded-md px-6">Grouping & Bracket</TabsTrigger>
+            <TabsTrigger value="athletes" className="rounded-md px-6">Data Atlet</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="groups" className="relative min-h-[500px] pb-24">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Cari atlet atau kelompok..."
+                  className="pl-9 bg-background/50 border-foreground/10 focus:border-foreground/20 transition-all rounded-lg"
+                  value={mainSearch}
+                  onChange={(e) => setMainSearch(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 rounded-lg border border-foreground/10 bg-background/50 px-3 py-2">
+                  <Checkbox 
+                    checked={filteredGroups.length > 0 && filteredGroups.every((g, idx) => selectedGroupIds.includes(groupKey(g, idx)))}
+                    onCheckedChange={toggleSelectAllGroups}
+                    id="select-all-groups"
+                  />
+                  <label htmlFor="select-all-groups" className="text-xs font-medium cursor-pointer">Pilih Semua</label>
+                </div>
+                {selectedGroupIds.length > 0 && (
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="h-10 rounded-lg px-4"
+                    onClick={handleBulkDeleteGroups}
+                    disabled={isDeletingGroups}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Hapus ({selectedGroupIds.length})
+                  </Button>
+                )}
+                <Select value={mainGenderFilter} onValueChange={setMainGenderFilter}>
+                  <SelectTrigger className="h-10 w-[160px] rounded-lg bg-background/50 border-foreground/10 focus:ring-0">
+                    <SelectValue placeholder="Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Gender</SelectItem>
+                    <SelectItem value="0">Putra</SelectItem>
+                    <SelectItem value="1">Putri</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" className="h-10 rounded-lg text-xs" onClick={() => { setMainSearch(""); setMainGenderFilter("all"); setSelectedGroupIds([]); }}>
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex min-h-64 flex-col items-center justify-center gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Memuat data kelompok...</p>
+              </div>
+            ) : groups.length === 0 ? (
+              <Card className="rounded-lg border-foreground/10 bg-background/70">
+                <CardContent className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
+                  <Users className="h-10 w-10 text-muted-foreground" />
+                  <div>
+                    <h2 className="text-xl font-semibold">Belum ada grouping</h2>
+                    <p className="text-sm text-muted-foreground">Pilih kategori pertandingan lalu upload CSV/XLSX untuk membuat preview.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                {filteredGroups.map((group, index) => {
+                  const key = groupKey(group, index);
+                  return (
+                    <Card
+                      key={key}
+                      className="rounded-lg border-foreground/10 bg-background/70"
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => draggedAthlete && moveAthlete(draggedAthlete.fromGroup, key, draggedAthlete.athleteId)}
+                    >
+                      <CardHeader className="space-y-3 pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <Checkbox 
+                              checked={selectedGroupIds.includes(key)}
+                              onCheckedChange={() => toggleSelectGroup(key)}
+                              className="mt-1.5"
+                            />
+                            <div>
+                              <CardTitle className="text-lg leading-tight">{group.group_name}</CardTitle>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                <Badge variant="secondary" className="bg-foreground/5 text-foreground/70">{group.gender_display || genderLabel(group.gender)}</Badge>
+                                <Badge variant="outline" className="border-foreground/10">{group.athletes.length} atlet</Badge>
+                                <Badge variant="outline" className="border-foreground/10">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
+                                <Badge variant="outline" className="border-foreground/10">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Export PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
+                              <FileText className="h-4 w-4 text-red-500" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Gambar" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
+                              <ImagePlus className="h-4 w-4 text-blue-500" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openGroupDialog(group)}>
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteGroup(group)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="grid gap-3 sm:grid-cols-2">
+                        {group.athletes.map((athlete) => (
+                          <div
+                            key={athleteKey(athlete)}
+                            draggable
+                            onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
+                            className="rounded-lg border border-foreground/10 bg-foreground/[0.03] p-3"
+                          >
+                            <div className="mb-3 flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                  <p className="truncate font-medium">{athlete.nama}</p>
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-500 uppercase">
+                                    {athlete.klub || "UMUM"}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {athlete.kontingen || "Tanpa kontingen"}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeAthlete(key, athleteKey(athlete))}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground border-t border-foreground/5 pt-2">
+                              <div className="flex justify-between"><span>Usia:</span> <span className="font-medium text-foreground">{athlete.umur} th</span></div>
+                              <div className="flex justify-between"><span>Tinggi:</span> <span className="font-medium text-foreground">{athlete.tinggi_cm} cm</span></div>
+                              <div className="flex justify-between"><span>Berat:</span> <span className="font-medium text-foreground">{athlete.berat_kg} kg</span></div>
+                              <div className="flex justify-between"><span>Gender:</span> <span className="font-medium text-foreground">{genderLabel(athlete.gender)}</span></div>
+                              <div className="col-span-2 flex justify-between mt-1 pt-1 border-t border-foreground/5">
+                                <span>Sabuk:</span> 
+                                <span className="font-bold text-primary">{sabukText(athlete)}</span>
+                              </div>
+                            </div>
+                            <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>
+                              <SelectTrigger className="h-8 w-full rounded-lg bg-background/70 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {groups
+                                  .map((candidate, candidateIndex) => ({ candidate, key: groupKey(candidate, candidateIndex) }))
+                                  .filter(({ candidate }) => candidate.gender === athlete.gender || candidate.athletes.length === 0)
+                                  .map(({ candidate, key: candidateKey }) => (
+                                    <SelectItem key={candidateKey} value={candidateKey}>
+                                      {candidate.group_name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Group Pagination */}
+            {groupTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-8 bg-background/50 backdrop-blur-sm p-4 rounded-2xl border border-foreground/5 mb-24">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setGroupPage(p => Math.max(1, p - 1))}
+                  disabled={groupPage === 1}
+                  className="rounded-xl"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                <span className="text-sm font-mono">
+                  Page {groupPage} of {groupTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setGroupPage(p => Math.min(groupTotalPages, p + 1))}
+                  disabled={groupPage === groupTotalPages}
+                  className="rounded-xl"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
+
+            {/* Sticky Action Bar */}
+            <div className="fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-foreground/10 bg-background/80 p-2 pr-6 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-500">
+              <div className="flex items-center gap-2 pl-4 pr-4 border-r border-foreground/10">
+                <Badge variant="secondary" className="h-6 rounded-full px-2 font-mono text-[10px]">
+                  {groups.length} Groups
+                </Badge>
+                {hasUnsavedChanges && (
+                  <Badge className="h-6 rounded-full bg-amber-500/20 text-amber-500 text-[10px] border-amber-500/20">
+                    Unsaved
+                  </Badge>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {hasUnsavedChanges && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-10 rounded-xl px-4 text-xs font-medium text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      loadGroups();
+                      setHasUnsavedChanges(false);
+                      toast.info("Perubahan dibatalkan.");
+                    }}
+                  >
+                    <Undo2 className="mr-2 h-4 w-4" />
+                    Batal
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-10 rounded-xl px-4 text-xs font-medium hover:bg-foreground/5"
+                  onClick={() => setCategoryDialogOpen(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Re-upload
+                </Button>
+                {groups.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-10 rounded-xl px-6 text-xs font-medium border-foreground/10 hover:bg-foreground/5"
+                    onClick={() => setPreviewDialogOpen(true)}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Preview
+                  </Button>
+                )}
+                <Button 
+                  size="sm" 
+                  className="h-10 rounded-xl px-8 text-xs font-bold bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10"
+                  disabled={!hasUnsavedChanges || saving}
+                  onClick={handleConfirmGroups}
+                >
+                  {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Simpan Perubahan
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="athletes">
+            <div className="mb-6 flex flex-col gap-6">
+              {/* ATHLETE DASHBOARD METRICS */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+                <Card className="border-foreground/5 bg-gradient-to-br from-foreground/[0.06] to-foreground/[0.02] backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold">{filteredAthleteList.length}</h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">dari {athletes.length} atlet</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-foreground/5 bg-gradient-to-br from-blue-500/[0.08] to-blue-500/[0.02] backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Putra</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold text-blue-600">{filteredAthleteList.filter(a => a.gender === 0).length}</h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">{athletes.length > 0 ? Math.round(filteredAthleteList.filter(a => a.gender === 0).length / filteredAthleteList.length * 100) : 0}%</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-foreground/5 bg-gradient-to-br from-pink-500/[0.08] to-pink-500/[0.02] backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Putri</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold text-pink-600">{filteredAthleteList.filter(a => a.gender === 1).length}</h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">{athletes.length > 0 ? Math.round(filteredAthleteList.filter(a => a.gender === 1).length / filteredAthleteList.length * 100) : 0}%</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-foreground/5 bg-gradient-to-br from-purple-500/[0.08] to-purple-500/[0.02] backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kyourugi</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold text-purple-600">{filteredAthleteList.filter(a => a.category === 0 || !a.category).length}</h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">kategori</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-foreground/5 bg-gradient-to-br from-orange-500/[0.08] to-orange-500/[0.02] backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Poomsae</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold text-orange-600">{filteredAthleteList.filter(a => a.category === 1).length}</h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">kategori</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-foreground/5 bg-gradient-to-br from-emerald-500/[0.08] to-emerald-500/[0.02] backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Prestasi</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold text-emerald-600">{filteredAthleteList.filter(a => a.class_level === '1').length}</h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">kelas</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-foreground/5 bg-gradient-to-br from-cyan-500/[0.08] to-cyan-500/[0.02] backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Pemula</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold text-cyan-600">{filteredAthleteList.filter(a => a.class_level !== '1').length}</h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">kelas</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-foreground/5 bg-gradient-to-br from-amber-500/[0.08] to-amber-500/[0.02] backdrop-blur-sm lg:hidden xl:block">
+                  <CardContent className="p-4">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Avg. Usia</p>
+                    <h3 className="mt-2 text-2xl font-display font-bold text-amber-600">
+                      {filteredAthleteList.length > 0 ? Math.round(filteredAthleteList.reduce((sum, a) => sum + (a.umur || 0), 0) / filteredAthleteList.length) : 0}
+                    </h3>
+                    <p className="mt-1 text-[9px] text-muted-foreground/60">tahun</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* FILTER SECTION HEADER */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wide">Filter & Cari Data Atlet</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">Gunakan filter di bawah untuk mencari atlet spesifik sesuai kriteria</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" className="h-9 text-xs font-bold border border-foreground/5 rounded-lg" onClick={() => {
+                    setAthleteSearch(""); setAthleteGenderFilter("all"); setAthleteBeltFilter("all");
+                    setAthleteClubFilter("all"); setAthleteAgeMin(""); setAthleteAgeMax("");
+                    setAthleteWeightMin(""); setAthleteWeightMax("");
+                    setAthleteHeightMin(""); setAthleteHeightMax("");
+                  }}>
+                    <Eraser className="mr-1.5 h-3.5 w-3.5" />
+                    RESET FILTER
+                  </Button>
+                </div>
+              </div>
+
+              {/* ADVANCED FILTERS */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                {/* BASIC SEARCH & GENDER FILTER */}
+                <Card className="lg:col-span-1 border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-foreground/[0.01] backdrop-blur-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pencarian & Gender</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* SEARCH BY NAME */}
+                    <div>
+                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Nama Atlet</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Cari nama..."
+                          className="pl-9 h-10 bg-background/50 border-foreground/10 rounded-lg text-sm"
+                          value={athleteSearch}
+                          onChange={(e) => setAthleteSearch(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* GENDER FILTER */}
+                    <div>
+                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Gender</Label>
+                      <Select value={athleteGenderFilter} onValueChange={setAthleteGenderFilter}>
+                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10 rounded-lg">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Semua Gender</SelectItem>
+                          <SelectItem value="0">Laki-laki (Putra)</SelectItem>
+                          <SelectItem value="1">Perempuan (Putri)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* BELT FILTER */}
+                    <div>
+                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Sabuk</Label>
+                      <Select value={athleteBeltFilter} onValueChange={setAthleteBeltFilter}>
+                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10 rounded-lg">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Semua Sabuk</SelectItem>
+                          {Object.entries(sabukLabels).map(([val, label]) => (
+                            <SelectItem key={val} value={val}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* CLUB FILTER */}
+                    <div>
+                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Klub / Instansi</Label>
+                      <Select value={athleteClubFilter} onValueChange={setAthleteClubFilter}>
+                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10 rounded-lg">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Semua Klub</SelectItem>
+                          {uniqueClubs.map(club => (
+                            <SelectItem key={club} value={club}>{club}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* ADVANCED RANGE FILTERS */}
+                <Card className="lg:col-span-3 border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-foreground/[0.01] backdrop-blur-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Filter Rentang Fisik</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* AGE RANGE */}
+                      <div className="space-y-2">
+                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Usia (tahun)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number" 
+                            placeholder="Min" 
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
+                            value={athleteAgeMin} 
+                            onChange={e => setAthleteAgeMin(e.target.value)} 
+                          />
+                          <span className="text-muted-foreground/50 font-medium">-</span>
+                          <Input 
+                            type="number" 
+                            placeholder="Max" 
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
+                            value={athleteAgeMax} 
+                            onChange={e => setAthleteAgeMax(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* WEIGHT RANGE */}
+                      <div className="space-y-2">
+                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Berat Badan (kg)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number" 
+                            placeholder="Min" 
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
+                            value={athleteWeightMin} 
+                            onChange={e => setAthleteWeightMin(e.target.value)} 
+                          />
+                          <span className="text-muted-foreground/50 font-medium">-</span>
+                          <Input 
+                            type="number" 
+                            placeholder="Max" 
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
+                            value={athleteWeightMax} 
+                            onChange={e => setAthleteWeightMax(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* HEIGHT RANGE */}
+                      <div className="space-y-2">
+                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Tinggi Badan (cm)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type="number" 
+                            placeholder="Min" 
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
+                            value={athleteHeightMin} 
+                            onChange={e => setAthleteHeightMin(e.target.value)} 
+                          />
+                          <span className="text-muted-foreground/50 font-medium">-</span>
+                          <Input 
+                            type="number" 
+                            placeholder="Max" 
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
+                            value={athleteHeightMax} 
+                            onChange={e => setAthleteHeightMax(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* ACTION BUTTONS */}
+                      <div className="flex items-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 h-10 rounded-lg border-blue-500/20 text-blue-600 hover:bg-blue-500/5 font-bold text-xs"
+                          onClick={() => downloadWithAuth(`/matches/weight_classes/export-all-pdf/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}`, `bracket-${selectedCategory}.pdf`)}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          EXPORT PDF
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* ATHLETE LIST TABLE */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wide">Data Atlet</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{filteredAthleteList.length} atlet ditampilkan</p>
+                  </div>
+                </div>
+
+                <Card className="overflow-hidden border-foreground/10 bg-gradient-to-br from-foreground/[0.02] to-background/50 backdrop-blur-sm">
+                  <Table>
+                    <TableHeader className="bg-gradient-to-r from-foreground/[0.04] to-foreground/[0.02] border-b border-foreground/5">
+                      <TableRow className="border-foreground/5 hover:bg-transparent">
+                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Nama Atlet</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Gender & Sabuk</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Info Fisik</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Kategori & Kelas</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Klub / Kontingen</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAthleteList.length === 0 ? (
+                        <TableRow className="hover:bg-transparent border-foreground/5">
+                          <TableCell colSpan={6} className="h-40 text-center">
+                            <div className="flex flex-col items-center justify-center gap-3">
+                              <Users className="h-8 w-8 text-muted-foreground/30" />
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Tidak ada atlet yang cocok</p>
+                                <p className="text-xs text-muted-foreground/60 mt-1">Coba ubah filter atau cari dengan kriteria berbeda</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredAthleteList.map((athlete, idx) => (
+                          <TableRow 
+                            key={athlete.id} 
+                            className="border-foreground/5 hover:bg-foreground/[0.03] transition-colors duration-200"
+                          >
+                            {/* NAMA ATLET */}
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-sm">{athlete.nama}</span>
+                                <span className="text-[9px] text-muted-foreground/60 mt-0.5">ID: {athlete.id}</span>
+                              </div>
+                            </TableCell>
+
+                            {/* GENDER & SABUK */}
+                            <TableCell>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <Badge 
+                                    variant={athlete.gender === 0 ? "default" : "secondary"} 
+                                    className="text-[8px] h-5 px-2 uppercase font-bold"
+                                  >
+                                    {athlete.gender === 0 ? "Putra" : "Putri"}
+                                  </Badge>
+                                </div>
+                                <span className="text-[9px] font-bold text-foreground/70 uppercase tracking-tight">
+                                  {sabukText(athlete).split(' - ')[1]}
+                                </span>
+                              </div>
+                            </TableCell>
+
+                            {/* INFO FISIK */}
+                            <TableCell>
+                              <div className="flex flex-col gap-1 text-[10px]">
+                                <div className="flex items-center gap-4">
+                                  <span className="text-muted-foreground">Usia:</span>
+                                  <span className="font-mono font-bold">{athlete.umur}</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-muted-foreground">Berat:</span>
+                                  <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-muted-foreground">Tinggi:</span>
+                                  <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            {/* KATEGORI & KELAS */}
+                            <TableCell>
+                              <div className="flex flex-col gap-2">
+                                <Badge 
+                                  variant="outline" 
+                                  className="w-fit text-[9px] border-purple-500/20 bg-purple-500/5 text-purple-600 font-bold"
+                                >
+                                  {athlete.category === 0 ? "Kyourugi" : athlete.category === 1 ? "Poomsae" : "—"}
+                                </Badge>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`w-fit text-[9px] font-bold ${
+                                    athlete.class_level === '1' 
+                                      ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-600' 
+                                      : 'border-cyan-500/20 bg-cyan-500/5 text-cyan-600'
+                                  }`}
+                                >
+                                  {athlete.class_level === '1' ? 'Prestasi' : 'Pemula'}
+                                </Badge>
+                              </div>
+                            </TableCell>
+
+                            {/* KLUB / KONTINGEN */}
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-xs text-blue-600 uppercase">{athlete.klub || "—"}</span>
+                                <span className="text-[9px] text-muted-foreground/60 truncate max-w-xs mt-0.5">
+                                  {athlete.kontingen || "Tanpa kontingen"}
+                                </span>
+                              </div>
+                            </TableCell>
+
+                            {/* AKSI */}
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1.5">
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-8 w-8 rounded-lg hover:bg-blue-500/10 hover:text-blue-500 transition-colors" 
+                                  title="Edit atlet"
+                                  onClick={() => openAthleteDialog(athlete)}
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors" 
+                                  title="Hapus atlet"
+                                  onClick={() => deleteAthlete(athlete.id!)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent className="rounded-lg sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Pilih kategori pertandingan</DialogTitle>
+            <DialogDescription>Kategori dipilih sebelum file CSV/XLSX diunggah.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(["kyourugi", "poomsae"] as Category[]).map((category) => (
+              <button
+                key={category}
+                type="button"
+                className="rounded-lg border border-foreground/10 p-5 text-left transition-colors hover:bg-foreground/5"
+                onClick={() => {
+                  setSelectedCategory(category);
+                  setCategoryDialogOpen(false);
+                  setUploadDialogOpen(true);
+                }}
+              >
+                <p className="font-semibold">{category === "kyourugi" ? "Kyourugi" : "Poomsae"}</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {category === "kyourugi" ? "Menggunakan model ML untuk grouping seimbang." : "Grouping manual tanpa pemaksaan model Kyourugi."}
+                </p>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="rounded-lg sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload data atlet</DialogTitle>
+            <DialogDescription>Format file: CSV, XLS, atau XLSX.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {progressMessage && (
+              <div className="flex items-center gap-3 rounded-lg bg-primary/5 p-4 text-sm text-primary animate-in fade-in slide-in-from-top-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {progressMessage}
+              </div>
+            )}
+            <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">File atlet</Label>
+            <div
+              className={`relative flex aspect-square w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
+                isDragging
+                  ? "border-foreground bg-foreground/5 scale-[1.02] shadow-2xl shadow-foreground/5"
+                  : "border-foreground/10 bg-foreground/[0.02] hover:border-foreground/20"
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".csv,.xls,.xlsx"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+              
+              {file ? (
+                <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                  <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-foreground/5 ring-1 ring-foreground/10">
+                    <FileSpreadsheet className="h-10 w-10 text-foreground" />
+                  </div>
+                  <p className="max-w-[250px] truncate font-display text-lg">{file.name}</p>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground tracking-tight">{(file.size / 1024).toFixed(1)} KB</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mt-6 rounded-full text-xs font-medium hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                    }}
+                  >
+                    <X className="mr-1.5 h-3.5 w-3.5" /> Lepas file
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center p-8">
+                  <div className={`mb-6 flex h-24 w-24 items-center justify-center rounded-3xl transition-all duration-500 ${isDragging ? 'bg-foreground/10 scale-110 rotate-3 shadow-xl' : 'bg-foreground/5 shadow-inner'}`}>
+                    <CloudUpload className={`h-12 w-12 transition-all duration-300 ${isDragging ? 'text-foreground' : 'text-muted-foreground'}`} />
+                  </div>
+                  <h3 className="font-display text-xl font-medium tracking-tight">Klik atau Tarik file</h3>
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed max-w-[240px]">
+                    Letakkan berkas CSV atau Excel di sini untuk memulai pemrosesan atlet.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-lg" onClick={() => setUploadDialogOpen(false)}>Batal</Button>
+            <Button className="rounded-lg bg-foreground text-background hover:bg-foreground/90" disabled={!file || uploading} onClick={handlePreviewUpload}>
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+              Preview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+        <DialogContent className="flex max-h-[90vh] flex-col p-0 sm:max-w-5xl overflow-hidden rounded-xl border-foreground/10 bg-background/95 backdrop-blur-xl shadow-2xl">
+          <DialogHeader className="p-6 pb-4 border-b border-foreground/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-2xl font-display">Preview Grouping</DialogTitle>
+                <DialogDescription className="mt-1 text-sm text-muted-foreground">
+                  Cek, drag-and-drop, atau pindahkan atlet sebelum disimpan secara permanen.
+                </DialogDescription>
+              </div>
+              <Badge variant="outline" className="h-fit py-1 px-3 border-foreground/10 bg-foreground/5 font-mono text-xs">
+                {groups.length} Kelompok Terdeteksi
+              </Badge>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Cari atlet atau kelompok..."
+                  className="pl-9 bg-background/50 border-foreground/10 focus:border-foreground/20 transition-all rounded-lg"
+                  value={previewSearch}
+                  onChange={(e) => setPreviewSearch(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={previewGender} onValueChange={setPreviewGender}>
+                  <SelectTrigger className="h-10 w-[140px] rounded-lg bg-background/50 border-foreground/10 focus:ring-0">
+                    <SelectValue placeholder="Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Gender</SelectItem>
+                    <SelectItem value="0">Laki-laki</SelectItem>
+                    <SelectItem value="1">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+                {selectedCategory === "poomsae" && (
+                   <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-10 rounded-lg text-xs text-destructive border-destructive/20 hover:bg-destructive/10" 
+                    onClick={clearAllGroups}
+                  >
+                    <Eraser className="mr-2 h-3 w-3" />
+                    Kosongkan Semua
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-10 rounded-lg text-xs" 
+                  onClick={() => {
+                    setPreviewSearch("");
+                    setPreviewGender("all");
+                    setPreviewClass("all");
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {progressMessage && (
+            <div className="mx-6 mt-4 flex items-center gap-3 rounded-lg bg-primary/5 p-4 text-sm text-primary animate-in fade-in slide-in-from-top-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {progressMessage}
+            </div>
+          )}
+
+          <div className="flex flex-1 overflow-hidden">
+            {/* Main Group List */}
+            <div className={`flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-foreground/10 scrollbar-track-transparent ${selectedCategory === "poomsae" ? 'border-r border-foreground/5' : ''}`}>
+              {uploading && groups.length === 0 ? (
+                <div className="flex h-64 flex-col items-center justify-center gap-4 text-muted-foreground">
+                  <div className="relative">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+                    <FileSpreadsheet className="absolute inset-0 m-auto h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground">Sedang memproses data...</p>
+                    <p className="text-xs">{progressMessage || "Harap tunggu sebentar"}</p>
+                  </div>
+                </div>
+              ) : groups.filter(g => {
+                const matchesSearch = g.group_name.toLowerCase().includes(previewSearch.toLowerCase()) || 
+                                     g.athletes.some(a => a.nama.toLowerCase().includes(previewSearch.toLowerCase()));
+                const matchesGender = previewGender === "all" || String(g.gender) === previewGender;
+                return matchesSearch && matchesGender;
+              }).length === 0 ? (
+                <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
+                  <Search className="h-8 w-8 opacity-20" />
+                  <p className="text-sm">Belum ada kelompok atau filter tidak sesuai.</p>
+                </div>
+              ) : (
+                <div className={`grid gap-4 ${selectedCategory === "poomsae" ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
+                  {groups
+                    .filter(g => {
+                      const matchesSearch = g.group_name.toLowerCase().includes(previewSearch.toLowerCase()) || 
+                                           g.athletes.some(a => a.nama.toLowerCase().includes(previewSearch.toLowerCase()));
+                      const matchesGender = previewGender === "all" || String(g.gender) === previewGender;
+                      return matchesSearch && matchesGender;
+                    })
+                    .map((group, index) => {
+                      const key = groupKey(group, index);
+                      return (
+                        <Card 
+                          key={key} 
+                          className="group overflow-hidden rounded-xl border-foreground/10 bg-background/50 transition-all hover:border-foreground/20 hover:shadow-lg hover:shadow-foreground/[0.02]"
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={() => draggedAthlete && moveAthlete(draggedAthlete.fromGroup, key, draggedAthlete.athleteId)}
+                        >
+                          <CardHeader className="p-4 pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <CardTitle className="text-sm font-semibold tracking-tight">{group.group_name}</CardTitle>
+                                {group.is_manual && <Badge variant="outline" className="text-[9px] bg-primary/5 text-primary border-primary/20">Manual</Badge>}
+                              </div>
+                              <Badge variant="secondary" className="text-[10px] uppercase tracking-widest opacity-70">
+                                {group.gender_display || genderLabel(group.gender)}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-3 pt-0">
+                            <div className="space-y-4">
+                              {/* Athletes List */}
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 px-1">Daftar Atlet</p>
+                                {(group.athletes || []).map((athlete) => (
+                                  <div 
+                                    key={athleteKey(athlete)} 
+                                    draggable
+                                    onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
+                                    className="relative flex flex-col rounded-lg border border-foreground/5 bg-foreground/[0.02] p-3 transition-colors hover:bg-foreground/[0.04]"
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5">
+                                          <GripVertical className="h-3 w-3 text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity" />
+                                          <p className="truncate font-medium text-xs">{athlete.nama}</p>
+                                        </div>
+                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground uppercase tracking-tight">
+                                          <span className="font-bold text-foreground/80">{athlete.umur}TH</span>
+                                          <span className="opacity-30">•</span>
+                                          <span>{athlete.berat_kg}KG / {athlete.tinggi_cm}CM</span>
+                                          <span className="opacity-30">•</span>
+                                          <span className="text-primary/80">{sabukText(athlete)}</span>
+                                          <span className="opacity-30">•</span>
+                                          <span className="truncate max-w-[120px]">KLUB: {athlete.klub || athlete.kontingen || "-"}</span>
+                                        </p>
+                                      </div>
+                                        <div className="flex gap-1">
+                                          <Button 
+                                            size="icon" 
+                                            variant="ghost" 
+                                            className="h-6 w-6 text-muted-foreground hover:text-destructive" 
+                                            onClick={() => removeAthlete(key, athleteKey(athlete))}
+                                            title="Keluarkan dari kelompok"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                          {athlete.id && (
+                                            <Button 
+                                              size="icon" 
+                                              variant="ghost" 
+                                              className="h-6 w-6 text-muted-foreground hover:text-destructive" 
+                                              onClick={() => deleteAthlete(athlete.id)}
+                                              title="Hapus permanen dari database"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Matches / Bagan List */}
+                              {group.matches && group.matches.length > 0 && (
+                                <div className="space-y-2 border-t border-foreground/5 pt-3">
+                                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1 px-1">Bagan Pertandingan (Partai)</p>
+                                  <div className="grid gap-2">
+                                    {(group.matches || []).map((match: any, mIdx: number) => (
+                                      <div key={mIdx} className="flex items-center gap-2 rounded-md bg-primary/5 p-2 border border-primary/10">
+                                        <div className="flex h-6 w-10 items-center justify-center rounded bg-primary text-[10px] font-bold text-primary-foreground">
+                                          P{match.nomor_partai}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between gap-2 text-[10px]">
+                                            <span className="font-medium truncate text-foreground/80">
+                                              {match.athlete_a?.is_placeholder ? (match.athlete_a.display_name || "Pemenang") : match.athlete_a?.nama || "?"}
+                                            </span>
+                                            <span className="text-[8px] font-bold opacity-30">VS</span>
+                                            <span className="font-medium truncate text-foreground/80 text-right">
+                                              {match.athlete_b?.is_placeholder ? (match.athlete_b.display_name || "Pemenang") : match.athlete_b?.nama || "?"}
+                                            </span>
+                                          </div>
+                                          <div className="mt-0.5 flex items-center justify-center">
+                                            <Badge variant="outline" className="h-4 py-0 text-[7px] border-primary/20 text-primary/70">
+                                              {match.babak || (match.is_final ? "FINAL" : `BABAK ${match.round}`)}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Poomsae Manual Sidebar */}
+            {selectedCategory === "poomsae" && (
+              <div className="w-[380px] flex flex-col bg-foreground/[0.01] overflow-hidden">
+                <div className="p-4 border-b border-foreground/5 bg-background/50">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      Athlete Pool
+                    </h4>
+                    <Badge variant="outline" className="text-[10px]">
+                      {poomsaePool.length} Tersisa
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search pool..." 
+                        className="h-8 pl-8 text-xs bg-background"
+                        value={poolSearch}
+                        onChange={(e) => setPoolSearch(e.target.value)} 
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <Select value={previewGender} onValueChange={setPreviewGender}>
+                        <SelectTrigger className="h-8 text-[10px] px-2">
+                          <SelectValue placeholder="G" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Gender</SelectItem>
+                          <SelectItem value="0">Laki-laki</SelectItem>
+                          <SelectItem value="1">Perempuan</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={poolSabukFilter} onValueChange={setPoolSabukFilter}>
+                        <SelectTrigger className="h-8 text-[10px] px-2">
+                          <SelectValue placeholder="B" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Sabuk</SelectItem>
+                          {Array.from(new Set(poomsaePool.map(a => String(a.sabuk)))).sort().map(s => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={poolAgeFilter} onValueChange={setPoolAgeFilter}>
+                        <SelectTrigger className="h-8 text-[10px] px-2">
+                          <SelectValue placeholder="A" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Umur</SelectItem>
+                          {Array.from(new Set(poomsaePool.map(a => a.umur))).sort((a, b) => a - b).map(u => (
+                            <SelectItem key={u} value={String(u)}>{u} th</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-foreground/10">
+                  {poomsaePool
+                    .filter(a => {
+                      const matchesSearch = a.nama.toLowerCase().includes(poolSearch.toLowerCase()) || 
+                                           (a.klub || "").toLowerCase().includes(poolSearch.toLowerCase());
+                      const matchesGender = previewGender === "all" || String(a.gender) === previewGender;
+                      const matchesSabuk = poolSabukFilter === "all" || String(a.sabuk) === poolSabukFilter;
+                      const matchesAge = poolAgeFilter === "all" || String(a.umur) === poolAgeFilter;
+                      return matchesSearch && matchesGender && matchesSabuk && matchesAge;
+                    })
+                    .map((athlete) => {
+                      const id = athleteKey(athlete);
+                      const isSelected = selectedPoolAthletes.includes(id);
+                      return (
+                        <div 
+                          key={id}
+                          onClick={() => togglePoolAthlete(id)}
+                          className={`group relative flex flex-col p-3 rounded-lg border cursor-pointer transition-all ${
+                            isSelected 
+                            ? 'bg-primary/10 border-primary shadow-sm' 
+                            : 'bg-background border-foreground/5 hover:border-foreground/20'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-medium truncate flex-1">{athlete.nama}</p>
+                            {isSelected && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 opacity-70">
+                            <span className="text-[9px] uppercase font-bold text-primary">{sabukText(athlete)}</span>
+                            <span className="text-[9px]">{athlete.umur} th</span>
+                            <span className="text-[9px] truncate">{athlete.klub || athlete.kontingen || "-"}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  
+                  {poomsaePool.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full opacity-30 text-center p-8">
+                      <UserCheck className="h-12 w-12 mb-2" />
+                      <p className="text-xs">Semua atlet sudah dimasukkan ke kelompok.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-background border-t border-foreground/5">
+                  <Button 
+                    className="w-full h-11 rounded-xl shadow-lg shadow-primary/20" 
+                    disabled={selectedPoolAthletes.length === 0}
+                    onClick={createManualGroup}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Buat Kelompok ({selectedPoolAthletes.length})
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex items-center justify-end gap-3 border-t border-foreground/5 bg-background/80 p-6 backdrop-blur-md">
+            <Button 
+              variant="ghost" 
+              className="h-11 rounded-xl px-6 text-destructive hover:bg-destructive/10 transition-all text-sm font-medium" 
+              onClick={() => {
+                loadGroups();
+                setPreviewDialogOpen(false);
+                toast.info("Perubahan dibatalkan.");
+              }}
+            >
+              <Undo2 className="mr-2 h-4 w-4" />
+              Batal
+            </Button>
+            <div className="flex-1" />
+            <Button 
+              variant="outline" 
+              className="h-11 rounded-xl px-8 border-foreground/10 hover:bg-foreground/5 transition-all text-sm font-medium" 
+              onClick={() => setPreviewDialogOpen(false)}
+            >
+              Lanjut edit
+            </Button>
+            <Button 
+              className="h-11 rounded-xl px-10 bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl shadow-foreground/10 text-sm font-bold" 
+              disabled={saving} 
+              onClick={handleConfirmGroups}
+            >
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Konfirmasi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+        <DialogContent className="rounded-lg sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingGroup ? "Edit kelompok" : "Buat kelompok"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nama kelompok</Label>
+              <Input value={groupForm.name} onChange={(event) => setGroupForm((current) => ({ ...current, name: event.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Gender</Label>
+              <Select value={groupForm.gender} onValueChange={(value) => setGroupForm((current) => ({ ...current, gender: value }))}>
+                <SelectTrigger className="w-full rounded-lg focus:ring-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Laki-laki</SelectItem>
+                  <SelectItem value="1">Perempuan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Lapangan (Arena)</Label>
+              <Select value={matchForm.arena} onValueChange={(value) => setMatchForm((current) => ({ ...current, arena: value }))}>
+                <SelectTrigger className="w-full rounded-lg focus:ring-0">
+                  <SelectValue placeholder="Pilih lapangan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Tanpa Lapangan</SelectItem>
+                  {arenas.map((arena) => (
+                    <SelectItem key={arena.id} value={String(arena.id)}>
+                      {arena.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-lg" onClick={() => setGroupDialogOpen(false)}>Batal</Button>
+            <Button className="rounded-lg bg-foreground text-background hover:bg-foreground/90" onClick={saveGroup}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
+        <DialogContent className="rounded-lg sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingMatch ? "Edit match" : "Buat match"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Ronde</Label>
+              <Select value={matchForm.round} onValueChange={(value) => setMatchForm((current) => ({ ...current, round: value }))}>
+                <SelectTrigger className="w-full rounded-lg focus:ring-0">
+                  <SelectValue placeholder="Pilih ronde" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rounds.map((round) => (
+                    <SelectItem key={round.id} value={String(round.id)}>
+                      {round.weight_class_name} - Ronde {round.round_number}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Nomor match</Label>
+              <Input type="number" value={matchForm.match_number} onChange={(event) => setMatchForm((current) => ({ ...current, match_number: event.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Nomor partai</Label>
+              <Input type="number" value={matchForm.bout_number} onChange={(event) => setMatchForm((current) => ({ ...current, bout_number: event.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Merah</Label>
+              <Select value={matchForm.red} onValueChange={(value) => setMatchForm((current) => ({ ...current, red: value }))}>
+                <SelectTrigger className="w-full rounded-lg focus:ring-0">
+                  <SelectValue placeholder="Atlet merah" />
+                </SelectTrigger>
+                <SelectContent>
+                  {athletes.map((athlete) => (
+                    <SelectItem key={athlete.id} value={String(athlete.id)}>
+                      {athlete.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Biru</Label>
+              <Select value={matchForm.blue} onValueChange={(value) => setMatchForm((current) => ({ ...current, blue: value }))}>
+                <SelectTrigger className="w-full rounded-lg focus:ring-0">
+                  <SelectValue placeholder="Atlet biru" />
+                </SelectTrigger>
+                <SelectContent>
+                  {athletes.map((athlete) => (
+                    <SelectItem key={athlete.id} value={String(athlete.id)}>
+                      {athlete.nama}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-lg" onClick={() => setMatchDialogOpen(false)}>Batal</Button>
+            <Button className="rounded-lg bg-foreground text-background hover:bg-foreground/90" onClick={saveMatch}>Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={athleteDialogOpen} onOpenChange={setAthleteDialogOpen}>
+        <DialogContent className="rounded-2xl sm:max-w-lg bg-background/95 backdrop-blur-xl border-foreground/10 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-display">Edit Data Atlet</DialogTitle>
+            <DialogDescription>
+              Perbarui informasi personal atlet untuk kejuaraan ini.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const data = Object.fromEntries(formData.entries());
+            saveAthlete({
+              ...data,
+              umur: parseInt(data.umur as string),
+              gender: parseInt(data.gender as string),
+              sabuk: parseInt(data.sabuk as string),
+              tinggi_cm: parseFloat(data.tinggi_cm as string),
+              berat_kg: parseFloat(data.berat_kg as string),
+            });
+          }} className="space-y-6 py-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Nama Lengkap</Label>
+                <Input name="nama" defaultValue={editingAthlete?.nama} className="rounded-xl bg-background/50 border-foreground/10 h-11" required />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Gender</Label>
+                <Select name="gender" defaultValue={String(editingAthlete?.gender ?? 0)}>
+                  <SelectTrigger className="h-11 rounded-xl bg-background/50 border-foreground/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Laki-laki</SelectItem>
+                    <SelectItem value="1">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Sabuk</Label>
+                <Select name="sabuk" defaultValue={String(editingAthlete?.sabuk ?? 0)}>
+                  <SelectTrigger className="h-11 rounded-xl bg-background/50 border-foreground/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(sabukLabels).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Umur (Tahun)</Label>
+                <Input name="umur" type="number" defaultValue={editingAthlete?.umur} className="rounded-xl bg-background/50 border-foreground/10 h-11" required />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Kelas</Label>
+                <Select name="class_level" defaultValue={editingAthlete?.class_level || '1'}>
+                  <SelectTrigger className="h-11 rounded-xl bg-background/50 border-foreground/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Prestasi</SelectItem>
+                    <SelectItem value="0">Pemula</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Berat (Kg)</Label>
+                <Input name="berat_kg" type="number" step="0.1" defaultValue={editingAthlete?.berat_kg} className="rounded-xl bg-background/50 border-foreground/10 h-11" required />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Tinggi (Cm)</Label>
+                <Input name="tinggi_cm" type="number" step="0.1" defaultValue={editingAthlete?.tinggi_cm} className="rounded-xl bg-background/50 border-foreground/10 h-11" required />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Klub / Instansi</Label>
+                <Input name="klub" defaultValue={editingAthlete?.klub} className="rounded-xl bg-background/50 border-foreground/10 h-11" />
+              </div>
+               <div className="space-y-2 sm:col-span-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Kontingen</Label>
+                <Input name="kontingen" defaultValue={editingAthlete?.kontingen} className="rounded-xl bg-background/50 border-foreground/10 h-11" />
+              </div>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" className="h-12 rounded-xl px-6 border-foreground/10" onClick={() => setAthleteDialogOpen(false)}>Batal</Button>
+              <Button type="submit" className="h-12 rounded-xl px-10 bg-foreground text-background font-bold hover:bg-foreground/90" disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Simpan Perubahan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </main>
+  );
+}
