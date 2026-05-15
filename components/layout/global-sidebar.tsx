@@ -22,63 +22,76 @@ export function GlobalSidebar() {
     return null;
   }
 
-  return (
-    <div 
-      className={`fixed top-0 left-0 h-screen bg-background/80 backdrop-blur-xl border-r border-foreground/10 shadow-2xl transition-all duration-500 z-40 flex flex-col ${
-        isCollapsed ? "w-16" : "w-80"
-      }`}
-    >
-      {/* Sidebar Header & Toggle */}
-      <div className="h-20 flex items-center justify-between px-4 border-b border-foreground/10 shrink-0">
-        {!isCollapsed && (
+    <>
+      {/* Floating Toggle Button when collapsed */}
+      <div 
+        className={`fixed left-0 top-1/2 -translate-y-1/2 z-50 transition-all duration-500 ${
+          isCollapsed ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="bg-foreground text-background py-3 pl-1 pr-2 rounded-r-xl shadow-2xl hover:pr-4 transition-all"
+          title="Open Hub"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Sidebar Drawer */}
+      <div 
+        className={`fixed top-0 left-0 h-screen bg-background/95 backdrop-blur-xl border-r border-foreground/10 shadow-2xl transition-transform duration-500 z-40 flex flex-col w-80 sm:w-96 ${
+          isCollapsed ? "-translate-x-full" : "translate-x-0"
+        }`}
+      >
+        {/* Sidebar Header & Toggle */}
+        <div className="h-16 flex items-center justify-between px-4 shrink-0">
           <div className="flex flex-col">
             <span className="font-display text-lg tracking-tight">Hub</span>
             <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">Global Control</span>
           </div>
-        )}
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`shrink-0 ${isCollapsed ? "mx-auto" : ""}`}
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </Button>
-      </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setIsCollapsed(true)}
+            className="shrink-0"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+        </div>
 
-      {/* Tabs / Icons (Rail view) */}
-      <div className="flex flex-col gap-2 p-2 border-b border-foreground/10 shrink-0">
-        <Button
-          variant={activeTab === "stats" ? "secondary" : "ghost"}
-          className={`justify-start ${isCollapsed ? "px-2" : "px-4"} transition-all`}
-          onClick={() => {
-            setActiveTab("stats");
-            if (isCollapsed) setIsCollapsed(false);
-          }}
-        >
-          <Activity className="w-5 h-5 shrink-0" />
-          {!isCollapsed && <span className="ml-3 font-medium">Statistics</span>}
-        </Button>
-        <Button
-          variant={activeTab === "chat" ? "secondary" : "ghost"}
-          className={`justify-start ${isCollapsed ? "px-2" : "px-4"} transition-all`}
-          onClick={() => {
-            setActiveTab("chat");
-            if (isCollapsed) setIsCollapsed(false);
-          }}
-        >
-          <MessageSquare className="w-5 h-5 shrink-0" />
-          {!isCollapsed && <span className="ml-3 font-medium">Admin Chat</span>}
-        </Button>
-      </div>
+        {/* Browser-like Tabs */}
+        <div className="flex px-2 pt-2 border-b border-foreground/10 shrink-0 bg-foreground/5">
+          <button
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 text-sm font-medium rounded-t-lg transition-all ${
+              activeTab === "stats" 
+                ? "bg-background text-foreground shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-l border-r border-foreground/10 relative z-10" 
+                : "text-muted-foreground hover:bg-foreground/5 border-transparent"
+            }`}
+            onClick={() => setActiveTab("stats")}
+          >
+            <Activity className="w-4 h-4" />
+            Statistik
+          </button>
+          <button
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 text-sm font-medium rounded-t-lg transition-all ${
+              activeTab === "chat" 
+                ? "bg-background text-foreground shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-l border-r border-foreground/10 relative z-10" 
+                : "text-muted-foreground hover:bg-foreground/5 border-transparent"
+            }`}
+            onClick={() => setActiveTab("chat")}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Admin Chat
+          </button>
+        </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
-        <div className={`absolute inset-0 transition-opacity duration-300 ${isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden relative bg-background">
           {activeTab === "stats" ? <StatsView /> : <ChatView />}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -267,6 +280,19 @@ function ChatView() {
 
   return (
     <div className="flex flex-col h-full bg-foreground/[0.02]">
+      {/* Chat Info Header */}
+      <div className="bg-blue-500/10 border-b border-blue-500/20 p-3 shrink-0">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-blue-500/20 rounded-full">
+            <Users className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide">Global Admin Group</h4>
+            <p className="text-[10px] text-blue-600/80 mt-0.5 leading-snug">Semua admin (Superadmin, Register, Operator) terhubung di sini.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {loading ? (
