@@ -395,6 +395,7 @@ export default function MatchesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
 
+
   useEffect(() => {
     setMatchPage(1);
   }, [matchSearch, matchStatusFilter, selectedCategory]);
@@ -1263,108 +1264,9 @@ export default function MatchesPage() {
     <main className="min-h-screen bg-background">
       <Navigation />
 
-      <div className="relative z-10 mx-auto max-w-[1400px] px-6 pb-16 pt-28 lg:px-10">
-        {/* PREMIUM BENTO DASHBOARD SUMMARY */}
-        <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Card 1: Total & Performance */}
-          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Total Athletes</p>
-                  <h3 className="mt-2 text-4xl font-black tracking-tight text-foreground">{stats.total}</h3>
-                  <div className="mt-3 flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Active Registrations</p>
-                  </div>
-                </div>
-                <div className="rounded-full bg-foreground/5 p-2.5">
-                  <Users className="h-5 w-5 text-foreground/70" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 2: Gender Balance */}
-          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardContent className="p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Gender Balance</p>
-              <div className="mt-3 flex items-end justify-between">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-foreground">{Math.round((stats.male / (stats.total || 1)) * 100)}%</span>
-                  <span className="text-[9px] font-bold uppercase text-muted-foreground">Putra</span>
-                </div>
-                <div className="flex flex-col text-right">
-                  <span className="text-2xl font-bold text-foreground">{Math.round((stats.female / (stats.total || 1)) * 100)}%</span>
-                  <span className="text-[9px] font-bold uppercase text-muted-foreground">Putri</span>
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-foreground/5">
-                <div 
-                  className="h-full bg-foreground transition-all duration-1000 ease-out" 
-                  style={{ width: `${(stats.male / (stats.total || 1)) * 100}%` }}
-                />
-              </div>
-              <p className="mt-2 text-[9px] text-center font-medium text-muted-foreground uppercase tracking-widest">
-                {stats.male} L / {stats.female} P
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Card 3: Competition Split */}
-          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardContent className="p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Competition Split</p>
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <span className="text-xs font-bold uppercase text-foreground/80">Kyorugi</span>
-                  </div>
-                  <span className="text-sm font-black text-foreground">{stats.kyorugi}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
-                    <span className="text-xs font-bold uppercase text-foreground/80">Poomsae</span>
-                  </div>
-                  <span className="text-sm font-black text-foreground">{stats.poomsae}</span>
-                </div>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/5">
-                  <div 
-                    className="h-full bg-blue-500 transition-all duration-1000 ease-out" 
-                    style={{ width: `${(stats.kyorugi / (stats.total || 1)) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 4: Participation Status */}
-          <Card className="border-foreground/5 shadow-sm bg-card/50 backdrop-blur-sm">
-            <CardContent className="p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Participation</p>
-              <div className="mt-2 flex items-center justify-between">
-                <h3 className="text-3xl font-black text-foreground">
-                  {Math.round(((athletes.filter(a => a.is_checked_in).length) / (stats.total || 1)) * 100)}%
-                </h3>
-                <div className="rounded-lg bg-emerald-500/10 px-2 py-1">
-                  <span className="text-[10px] font-bold text-emerald-600 uppercase">Live</span>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-lg border border-foreground/5 bg-foreground/[0.02] p-2">
-                  <p className="text-[8px] font-bold uppercase text-muted-foreground">Hadir</p>
-                  <p className="text-sm font-black text-foreground">{athletes.filter(a => a.is_checked_in).length}</p>
-                </div>
-                <div className="rounded-lg border border-foreground/5 bg-foreground/[0.02] p-2">
-                  <p className="text-[8px] font-bold uppercase text-muted-foreground">Kelompok</p>
-                  <p className="text-sm font-black text-foreground">{stats.groupsCount}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="relative z-10 mx-auto max-w-[1600px] px-6 pb-16 pt-28 lg:px-10">
+          {/* MAIN CONTENT AREA */}
+          <div className="flex-1 min-w-0">
 
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -1998,8 +1900,9 @@ export default function MatchesPage() {
               </Table>
             </Card>
           </TabsContent>
-        </Tabs>
-      </div>
+            </Tabs>
+          </div>
+        </div>
 
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-xl">
