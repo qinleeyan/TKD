@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "react-hot-toast";
 
 export function GlobalSidebar() {
   const { user } = useAuth();
@@ -293,39 +294,37 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
               audioRef.current?.play().catch(() => {});
               
               // Custom styled toast for chat (Blue theme)
-              import('react-hot-toast').then(({ toast }) => {
-                toast.custom((t) => (
-                  <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-blue-600 shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
-                    <div className="flex-1 w-0 p-4">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 pt-0.5">
-                          <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-white">
-                            <MessageSquare className="h-6 w-6" />
-                          </div>
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <p className="text-sm font-bold text-white">Pesan Baru</p>
-                          <p className="mt-1 text-sm text-blue-50 font-medium">
-                            <span className="font-bold">{data.message.sender_name}:</span> {data.message.content}
-                          </p>
+              toast.custom((t) => (
+                <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-blue-600 shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+                  <div className="flex-1 w-0 p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0 pt-0.5">
+                        <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-white">
+                          <MessageSquare className="h-6 w-6" />
                         </div>
                       </div>
-                    </div>
-                    <div className="flex border-l border-white/10">
-                      <button
-                        onClick={() => {
-                          toast.dismiss(t.id);
-                          setIsCollapsed(false);
-                          setActiveTab("chat");
-                        }}
-                        className="w-full border border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-bold text-white hover:bg-white/10 focus:outline-none"
-                      >
-                        Buka
-                      </button>
+                      <div className="ml-3 flex-1">
+                        <p className="text-sm font-bold text-white">Pesan Baru</p>
+                        <p className="mt-1 text-sm text-blue-50 font-medium">
+                          <span className="font-bold">{data.message.username || "Seseorang"}:</span> {data.message.content}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                ), { id: 'chat-notif', duration: 5000 });
-              });
+                  <div className="flex border-l border-white/10">
+                    <button
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        setIsCollapsed(false);
+                        setActiveTab("chat");
+                      }}
+                      className="w-full border border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-bold text-white hover:bg-white/10 focus:outline-none"
+                    >
+                      Buka
+                    </button>
+                  </div>
+                </div>
+              ), { id: 'chat-notif', duration: 5000 });
             }
           }
           
@@ -501,15 +500,15 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
       <div className="p-4 bg-background border-t border-foreground/10 pb-[env(safe-area-inset-bottom,16px)]">
         {/* Typing Indicator with Animation */}
         {typingUsers.size > 0 && (
-          <div className="px-2 pb-2 flex items-center gap-2">
-            <p className="text-[10px] text-muted-foreground italic">
-              {Array.from(typingUsers).join(", ")} is typing
-            </p>
-            <div className="flex gap-1 items-center mb-0.5">
-              <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-              <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-              <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"></span>
+          <div className="px-4 py-2 text-[10px] sm:text-xs text-blue-600 animate-pulse italic flex items-center gap-2">
+            <div className="flex gap-1">
+              <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce"></span>
             </div>
+            <span className="font-bold">
+              {Array.from(typingUsers).join(", ")}
+            </span> sedang mengetik...
           </div>
         )}
         

@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { BracketVisual } from "@/components/matches/bracket-visual";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -537,13 +539,27 @@ export default function MatchesPage() {
     }
 
     // Direct Data Updates (Zero Latency - No API Fetch)
-    if (event === "groups_confirmed" && data?.groups) {
+    // Direct Data Updates (Zero Latency - No API Fetch)
+    if ((event === "groups_confirmed" || event === "preview_ready") && data?.groups) {
       setGroups(data.groups.map((item: any, index: number) => normalizeGroup(item, index)));
       setHasUnsavedChanges(false);
       setUploading(false);
       setSaving(false);
       setPreviewDialogOpen(false);
-      toast.success(data.message || "Grouping & Bracket disinkronisasi.");
+      
+      // If confirmed, refresh matches and rounds to update Bracket tab
+      if (event === "groups_confirmed") {
+        loadMatches(true);
+        loadRounds(true);
+      }
+
+      // If poomsae, also prepare the pool (all athletes)
+      if (data.category === 1 || selectedCategory === "poomsae") {
+        const allAthletes = data.groups.flatMap((g: any) => g.athletes);
+        setPoomsaePool(allAthletes);
+      }
+
+      toast.success(data.message || (event === "preview_ready" ? "Preview grouping siap!" : "Grouping & Bracket disinkronisasi."));
       return;
     }
 
@@ -830,12 +846,18 @@ export default function MatchesPage() {
       setPreviewDialogOpen(true); // Open dialog immediately to show progress
       setUploadDialogOpen(false);
 
-      setProgressMessage("Mengunggah file...");
       const res = await fetchWithAuth("/matchmaking/preview-upload/", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
+      
+      if (res.status === 202) {
+        // Backend processing in background
+        toast.info(data.message || "Menganalisis file di latar belakang...");
+        return;
+      }
+
       if (!res.ok) {
         toast.error(data.error || "Gagal memproses file.");
         setProgressMessage("");
@@ -858,9 +880,10 @@ export default function MatchesPage() {
     } catch {
       toast.error("Tidak dapat menghubungi backend.");
       setPreviewDialogOpen(false);
-    } finally {
       setUploading(false);
     }
+    // Note: We don't set uploading=false in finally here 
+    // because background tasks (202) need to keep the state.
   };
 
   const handleConfirmGroups = async () => {
@@ -888,8 +911,10 @@ export default function MatchesPage() {
       const data = await res.json();
       
       if (res.status === 202) {
-        // Backend processing in background - Keep saving=true, WebSocket will stop it
+        // Backend processing in background - Keep saving=true
         toast.info(data.message || "Proses sinkronisasi dimulai...");
+        // Close preview dialog so user can see the progress on the main dashboard
+        setPreviewDialogOpen(false);
         return;
       }
 
@@ -910,7 +935,6 @@ export default function MatchesPage() {
       }
     } catch {
       toast.error("Tidak dapat menyimpan grouping.");
-    } finally {
       setSaving(false);
     }
   };
@@ -1135,27 +1159,21 @@ export default function MatchesPage() {
     if (!window.confirm("APAKAH ANDA YAKIN? Semua bracket dan jadwal akan hilang.")) return;
 
     setSaving(true);
+    setProgressMessage("Mereset seluruh data tournament...");
     try {
-      // 1. Delete all groups
-      const resGroups = await fetchWithAuth(`/matches/weight_classes/bulk-delete/?tournament=${TOURNAMENT_ID}`, {
-        method: "DELETE",
-        body: JSON.stringify({ ids: [] })
+      const res = await fetchWithAuth("/matchmaking/reset-tournament/", {
+        method: "POST",
+        body: JSON.stringify({ tournament_id: TOURNAMENT_ID })
       });
 
-      if (!resGroups.ok) {
-        const errorData = await resGroups.json().catch(() => ({}));
-        throw new Error(errorData.error || "Gagal menghapus kelompok.");
+      if (res.status === 202) {
+        toast.info("Reset data sedang diproses...");
+        return;
       }
 
-      // 2. Delete all athletes
-      const resAthletes = await fetchWithAuth(`/athletes/bulk-delete/?tournament=${TOURNAMENT_ID}`, {
-        method: "DELETE",
-        body: JSON.stringify({ ids: [] })
-      });
-
-      if (!resAthletes.ok) {
-        const errorData = await resAthletes.json().catch(() => ({}));
-        throw new Error(errorData.error || "Gagal menghapus atlet.");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Gagal mereset data.");
       }
 
       toast.success("Seluruh data tournament berhasil direset.");
@@ -1166,7 +1184,7 @@ export default function MatchesPage() {
     } catch (error: any) {
       console.error("Reset error:", error);
       toast.error(error.message || "Gagal mereset data.");
-    } finally {
+      setProgressMessage("");
       setSaving(false);
     }
   };
@@ -1287,6 +1305,21 @@ export default function MatchesPage() {
     <main className="min-h-screen bg-background">
       <Navigation />
 
+      {/* Global Progress Indicator (Ultra Realtime Feedback) */}
+      {progressMessage && (
+        <div className="fixed top-16 left-0 right-0 z-[100] animate-in slide-in-from-top-full duration-500">
+          <div className="mx-auto max-w-xl px-4 py-3">
+            <div className="flex items-center gap-3 rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground shadow-2xl ring-1 ring-white/10">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="flex-1 truncate">{progressMessage}</span>
+              <div className="flex h-1.5 w-24 overflow-hidden rounded-full bg-white/20">
+                <div className="h-full w-1/3 animate-[progress_2s_ease-in-out_infinite] bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="relative z-10 mx-auto max-w-[1600px] px-6 pb-16 pt-28 lg:px-10">
         {/* MAIN CONTENT AREA */}
         <div className="flex-1 min-w-0">
@@ -1343,7 +1376,8 @@ export default function MatchesPage() {
 
           <Tabs defaultValue="groups" className="space-y-6">
             <TabsList className="rounded-lg bg-background/50 border border-foreground/5 p-1">
-              <TabsTrigger value="groups" className="rounded-md px-6">Grouping & Bracket</TabsTrigger>
+              <TabsTrigger value="groups" className="rounded-md px-6">Grouping</TabsTrigger>
+              <TabsTrigger value="bracket" className="rounded-md px-6">Bracket</TabsTrigger>
               <TabsTrigger value="athletes" className="rounded-md px-6">Data Atlet</TabsTrigger>
             </TabsList>
 
@@ -1396,9 +1430,19 @@ export default function MatchesPage() {
               </div>
 
               {loading ? (
-                <div className="flex min-h-64 flex-col items-center justify-center gap-4">
-                  <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Memuat data kelompok...</p>
+                <div className="grid gap-3 grid-cols-1">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="rounded-lg border border-foreground/10 p-3 space-y-3 animate-pulse bg-background/50">
+                      <div className="flex justify-between">
+                        <div className="h-4 w-32 bg-foreground/10 rounded" />
+                        <div className="h-4 w-20 bg-foreground/10 rounded" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-2 w-full bg-foreground/5 rounded" />
+                        <div className="h-2 w-full bg-foreground/5 rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : groups.length === 0 ? (
                 <Card className="rounded-lg border-foreground/10 bg-background/70">
@@ -1411,7 +1455,7 @@ export default function MatchesPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                <div className="grid gap-3 grid-cols-1">
                   {filteredGroups.map((group, index) => {
                     const key = groupKey(group, index);
                     return (
@@ -1421,98 +1465,91 @@ export default function MatchesPage() {
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={() => draggedAthlete && moveAthlete(draggedAthlete.fromGroup, key, draggedAthlete.athleteId)}
                       >
-                        <CardHeader className="space-y-3 pb-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3">
+                        <CardHeader className="p-2 pb-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
                               <Checkbox
                                 checked={selectedGroupIds.includes(key)}
                                 onCheckedChange={() => toggleSelectGroup(key)}
-                                className="mt-1.5"
+                                className="h-3.5 w-3.5"
                               />
-                              <div>
-                                <CardTitle className="text-lg leading-tight">{group.group_name}</CardTitle>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  <Badge variant="secondary" className="bg-foreground/5 text-foreground/70">{group.gender_display || genderLabel(group.gender)}</Badge>
-                                  <Badge variant="outline" className="border-foreground/10">{group.athletes.length} atlet</Badge>
-                                  <Badge variant="outline" className="border-foreground/10">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
-                                  <Badge variant="outline" className="border-foreground/10">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
+                              <div className="min-w-0">
+                                <CardTitle className="text-[13px] font-bold truncate leading-none">{group.group_name}</CardTitle>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  <Badge variant="secondary" className="bg-foreground/5 text-foreground/70 text-[8px] h-3.5 px-1">{group.gender_display || genderLabel(group.gender)}</Badge>
+                                  <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.athletes.length} atlet</Badge>
+                                  <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
+                                  <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex gap-1">
-                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
-                                <Download className="h-4 w-4" />
+                            <div className="flex gap-0.5 shrink-0">
+                              <Button size="icon" variant="ghost" className="h-6 w-6" title="Export Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
+                                <Download className="h-3 w-3" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Export PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
-                                <FileText className="h-4 w-4" />
+                              <Button size="icon" variant="ghost" className="h-6 w-6" title="Export PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
+                                <FileText className="h-3 w-3" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Gambar" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
-                                <ImagePlus className="h-4 w-4" />
+                              <Button size="icon" variant="ghost" className="h-6 w-6" title="Export Gambar" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
+                                <ImagePlus className="h-3 w-3" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openGroupDialog(group)}>
-                                <Edit3 className="h-4 w-4" />
+                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openGroupDialog(group)}>
+                                <Edit3 className="h-3 w-3" />
                               </Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive transition-all" onClick={() => deleteGroup(group)}>
-                                <Trash2 className="h-4 w-4" />
+                              <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-destructive transition-all" onClick={() => deleteGroup(group)}>
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="grid gap-2 grid-cols-1 p-3">
-                          {group.athletes.map((athlete) => (
+                        <div className="flex flex-col border-t border-foreground/[0.03]">
+                          {(group.athletes || []).map((athlete) => (
                             <div
                               key={athleteKey(athlete)}
                               draggable
                               onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
-                              className="rounded-lg border border-foreground/10 bg-foreground/[0.02] p-2 hover:bg-foreground/[0.05] transition-colors"
+                              className="group/athlete flex items-center gap-2 px-2 py-1 hover:bg-primary/[0.04] transition-colors border-b border-foreground/[0.02] last:border-0"
                             >
-                              <div className="mb-2 flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                    <p className="truncate font-medium">{athlete.nama}</p>
+                              <GripVertical className="h-2.5 w-2.5 shrink-0 text-muted-foreground/10 group-hover/athlete:text-muted-foreground/30 cursor-grab active:cursor-grabbing" />
+                              <div className="flex-1 flex items-center justify-between min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-bold text-[10px] truncate uppercase text-foreground/80">{athlete.nama}</span>
+                                  <span className="text-[7px] text-primary/70 font-black px-1 border border-primary/20 rounded-[2px] bg-primary/[0.03] uppercase">{sabukText(athlete)}</span>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="flex items-center gap-2 text-[8.5px] text-muted-foreground font-medium">
+                                    <span className="text-foreground/60">{athlete.umur}th</span>
+                                    <span className="opacity-20">•</span>
+                                    <span>{athlete.berat_kg}kg</span>
+                                    <span className="opacity-20">•</span>
+                                    <span className="truncate max-w-[90px]">{athlete.klub || athlete.kontingen || "UMUM"}</span>
                                   </div>
-                                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                    <span className="inline-flex items-center rounded-md bg-foreground/5 px-1.5 py-0.5 text-[10px] font-bold text-foreground uppercase">
-                                      {athlete.klub || "UMUM"}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {athlete.kontingen || "Tanpa kontingen"}
-                                    </span>
+                                  <div className="flex items-center gap-1 opacity-0 group-hover/athlete:opacity-100 transition-opacity">
+                                    <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>
+                                      <SelectTrigger className="h-5 w-5 p-0 border-none bg-transparent hover:bg-foreground/5 focus:ring-0">
+                                        <Edit3 className="h-3 w-3 text-muted-foreground" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {groups.map((candidate, ci) => {
+                                          const cKey = groupKey(candidate, ci);
+                                          return (
+                                            <SelectItem key={cKey} value={cKey}>{candidate.group_name}</SelectItem>
+                                          );
+                                        })}
+                                      </SelectContent>
+                                    </Select>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5 text-muted-foreground" onClick={() => editAthlete(athlete)}>
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeAthlete(key, athleteKey(athlete))}>
+                                      <X className="h-3 w-3" />
+                                    </Button>
                                   </div>
                                 </div>
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeAthlete(key, athleteKey(athlete))}>
-                                  <X className="h-4 w-4" />
-                                </Button>
                               </div>
-                              <div className="mb-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px] text-muted-foreground border-t border-foreground/5 pt-1.5">
-                                <div className="flex justify-between"><span>Usia:</span> <span className="font-medium text-foreground">{athlete.umur} th</span></div>
-                                <div className="flex justify-between"><span>Tinggi:</span> <span className="font-medium text-foreground">{athlete.tinggi_cm} cm</span></div>
-                                <div className="flex justify-between"><span>Berat:</span> <span className="font-medium text-foreground">{athlete.berat_kg} kg</span></div>
-                                <div className="flex justify-between"><span>Gender:</span> <span className="font-medium text-foreground">{genderLabel(athlete.gender)}</span></div>
-                                <div className="col-span-2 flex justify-between mt-1 pt-1 border-t border-foreground/5">
-                                  <span>Sabuk:</span>
-                                  <span className="font-bold text-foreground uppercase tracking-tight">{sabukText(athlete)}</span>
-                                </div>
-                              </div>
-                              <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>
-                                <SelectTrigger className="h-8 w-full rounded-lg bg-background/70 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {groups
-                                    .map((candidate, candidateIndex) => ({ candidate, key: groupKey(candidate, candidateIndex) }))
-                                    .filter(({ candidate }) => candidate.gender === athlete.gender || candidate.athletes.length === 0)
-                                    .map(({ candidate, key: candidateKey }) => (
-                                      <SelectItem key={candidateKey} value={candidateKey}>
-                                        {candidate.group_name}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
                             </div>
                           ))}
-                        </CardContent>
+                        </div>
                       </Card>
                     );
                   })}
@@ -1608,6 +1645,51 @@ export default function MatchesPage() {
                     Simpan Perubahan
                   </Button>
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bracket" className="relative min-h-[500px] pb-24">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari kelompok..."
+                    className="pl-9 bg-background/50 border-foreground/10 focus:border-foreground/20 transition-all rounded-lg"
+                    value={mainSearch}
+                    onChange={(e) => setMainSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredGroups.map((group, index) => {
+                  const key = groupKey(group, index);
+                  return (
+                    <Card key={`bracket-${key}`} className="rounded-lg border-foreground/10 bg-background/70 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3 border-b border-foreground/5 bg-foreground/[0.02]">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <CardTitle className="text-sm font-bold truncate tracking-tight">{group.group_name}</CardTitle>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{group.gender_display || genderLabel(group.gender)}</p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" title="Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" title="PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
+                              <FileText className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" title="Image" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
+                              <ImagePlus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-3">
+                        <BracketVisual athletes={group.athletes} matches={group.matches || []} />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </TabsContent>
 
@@ -1858,19 +1940,15 @@ export default function MatchesPage() {
                             </div>
                           </TableCell>
                           <TableCell className="py-4">
-                            <div className="flex flex-col gap-2 text-[12px]">
-                              <div className="flex items-center justify-between w-32">
-                                <span className="text-muted-foreground font-medium">Usia:</span>
-                                <span className="font-mono font-bold">{athlete.umur} th</span>
+                            <div className="flex flex-col gap-1 text-[11px]">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold">{athlete.umur}th</span>
+                                <span className="opacity-20">•</span>
+                                <span>{athlete.berat_kg}kg / {athlete.tinggi_cm}cm</span>
                               </div>
-                              <div className="flex items-center justify-between w-32">
-                                <span className="text-muted-foreground font-medium">Berat:</span>
-                                <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
-                              </div>
-                              <div className="flex items-center justify-between w-32">
-                                <span className="text-muted-foreground font-medium">Tinggi:</span>
-                                <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
-                              </div>
+                              <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                                {athlete.gender === 0 ? "Laki-laki" : "Perempuan"}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell className="py-4">
@@ -2122,7 +2200,7 @@ export default function MatchesPage() {
                   <p className="text-sm">Belum ada kelompok atau filter tidak sesuai.</p>
                 </div>
               ) : (
-                <div className={`grid gap-4 ${selectedCategory === "poomsae" ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
+                <div className="grid gap-3 grid-cols-1">
                   {groups
                     .filter(g => {
                       const matchesSearch = g.group_name.toLowerCase().includes(previewSearch.toLowerCase()) ||
@@ -2156,86 +2234,55 @@ export default function MatchesPage() {
                               <div className="space-y-2">
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 px-1">Daftar Atlet</p>
                                 {(group.athletes || []).map((athlete) => (
-                                  <div
-                                    key={athleteKey(athlete)}
-                                    draggable
-                                    onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
-                                    className="relative flex flex-col rounded-lg border border-foreground/5 bg-foreground/[0.02] p-3 transition-colors hover:bg-foreground/[0.04]"
-                                  >
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5">
-                                          <GripVertical className="h-3 w-3 text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity" />
-                                          <p className="truncate font-medium text-xs">{athlete.nama}</p>
+                                    <div
+                                      key={athleteKey(athlete)}
+                                      draggable
+                                      onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
+                                      className="group/athlete flex items-center gap-2 px-2 py-1.5 hover:bg-primary/[0.04] transition-colors border-b border-foreground/[0.02] last:border-0"
+                                    >
+                                      <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/10 group-hover/athlete:text-muted-foreground/30 cursor-grab active:cursor-grabbing" />
+                                      <div className="flex-1 flex items-center justify-between min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <span className="font-bold text-[11px] truncate uppercase text-foreground/80">{athlete.nama}</span>
+                                          <span className="text-[8px] text-primary/70 font-black px-1.5 border border-primary/20 rounded-[2px] bg-primary/[0.03] uppercase">{sabukText(athlete)}</span>
                                         </div>
-                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground uppercase tracking-tight">
-                                          <span className="font-bold text-foreground/80">{athlete.umur}TH</span>
-                                          <span className="opacity-30">•</span>
-                                          <span>{athlete.berat_kg}KG / {athlete.tinggi_cm}CM</span>
-                                          <span className="opacity-30">•</span>
-                                          <span className="text-primary/80">{sabukText(athlete)}</span>
-                                          <span className="opacity-30">•</span>
-                                          <span className="truncate max-w-[120px]">KLUB: {athlete.klub || athlete.kontingen || "-"}</span>
-                                        </p>
-                                      </div>
-                                      <div className="flex gap-1">
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                          onClick={() => removeAthlete(key, athleteKey(athlete))}
-                                          title="Keluarkan dari kelompok"
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                        {athlete.id && (
-                                          <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                            onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
-                                            title="Hapus permanen dari database"
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        )}
+                                        <div className="flex items-center gap-3 shrink-0">
+                                          <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-medium">
+                                            <span className="text-foreground/60">{athlete.umur}TH</span>
+                                            <span className="opacity-20">•</span>
+                                            <span>{athlete.berat_kg}KG</span>
+                                            <span className="opacity-20">•</span>
+                                            <span className="truncate max-w-[120px]">{athlete.klub || athlete.kontingen || "UMUM"}</span>
+                                          </div>
+                                          <div className="flex items-center gap-0.5 opacity-0 group-hover/athlete:opacity-100 transition-opacity">
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                              onClick={() => removeAthlete(key, athleteKey(athlete))}
+                                              title="Keluarkan dari kelompok"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                            {athlete.id && (
+                                              <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                                onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
+                                                title="Hapus permanen"
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
                                 ))}
                               </div>
 
-                              {/* Matches / Bagan List */}
-                              {group.matches && group.matches.length > 0 && (
-                                <div className="space-y-2 border-t border-foreground/5 pt-3">
-                                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1 px-1">Bagan Pertandingan (Partai)</p>
-                                  <div className="grid gap-2">
-                                    {(group.matches || []).map((match: any, mIdx: number) => (
-                                      <div key={mIdx} className="flex items-center gap-2 rounded-md bg-primary/5 p-2 border border-primary/10">
-                                        <div className="flex h-6 w-10 items-center justify-center rounded bg-primary text-[10px] font-bold text-primary-foreground">
-                                          P{match.nomor_partai}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex items-center justify-between gap-2 text-[10px]">
-                                            <span className="font-medium truncate text-foreground/80">
-                                              {match.athlete_a?.is_placeholder ? (match.athlete_a.display_name || "Pemenang") : match.athlete_a?.nama || "?"}
-                                            </span>
-                                            <span className="text-[8px] font-bold opacity-30">VS</span>
-                                            <span className="font-medium truncate text-foreground/80 text-right">
-                                              {match.athlete_b?.is_placeholder ? (match.athlete_b.display_name || "Pemenang") : match.athlete_b?.nama || "?"}
-                                            </span>
-                                          </div>
-                                          <div className="mt-0.5 flex items-center justify-center">
-                                            <Badge variant="outline" className="h-4 py-0 text-[7px] border-primary/20 text-primary/70">
-                                              {match.babak || (match.is_final ? "FINAL" : `BABAK ${match.round}`)}
-                                            </Badge>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+
                             </div>
                           </CardContent>
                         </Card>
