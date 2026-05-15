@@ -426,12 +426,17 @@ function ChatView() {
 
       {/* Chat Input Area */}
       <div className="p-4 bg-background border-t border-foreground/10 pb-[env(safe-area-inset-bottom,16px)]">
-        {/* Typing Indicator */}
+        {/* Typing Indicator with Animation */}
         {typingUsers.size > 0 && (
-          <div className="px-2 pb-2">
-            <p className="text-[10px] text-muted-foreground animate-pulse italic">
-              {Array.from(typingUsers).join(", ")} {typingUsers.size === 1 ? "sedang mengetik..." : "sedang mengetik..."}
+          <div className="px-2 pb-2 flex items-center gap-2">
+            <p className="text-[10px] text-muted-foreground italic">
+              {Array.from(typingUsers).join(", ")} is typing
             </p>
+            <div className="flex gap-1 items-center mb-0.5">
+              <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"></span>
+            </div>
           </div>
         )}
         
