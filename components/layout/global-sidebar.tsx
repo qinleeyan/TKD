@@ -192,8 +192,10 @@ function ChatView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -254,6 +256,21 @@ function ChatView() {
         const data = JSON.parse(event.data);
         if (data.type === "chat_message") {
           setMessages((prev) => [...prev, data.message]);
+          // Remove user from typing list when message arrives
+          setTypingUsers(prev => {
+            const next = new Set(prev);
+            next.delete(data.message.username);
+            return next;
+          });
+        } else if (data.type === "user_typing") {
+          setTypingUsers(prev => {
+            const next = new Set(prev);
+            if (data.is_typing) next.add(data.username);
+            else next.delete(data.username);
+            return next;
+          });
+        } else if (data.type === "chat_cleared") {
+          setMessages([]);
         }
       } catch (e) {
         console.error("Error parsing WS message:", e);
@@ -278,6 +295,42 @@ function ChatView() {
       content: inputMessage.trim()
     }));
     setInputMessage("");
+    // Notify stopped typing immediately on send
+    sendTypingStatus(false);
+  };
+
+  const sendTypingStatus = (isTyping: boolean) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({
+      action: "typing",
+      is_typing: isTyping
+    }));
+  };
+
+  const isTypingRef = useRef(false);
+
+  // Handle typing notification with debounce
+  const handleInputChange = (val: string) => {
+    setInputMessage(val);
+    
+    if (val.length > 0) {
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        sendTypingStatus(true);
+      }
+      
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        isTypingRef.current = false;
+        sendTypingStatus(false);
+      }, 3000);
+    } else {
+      if (isTypingRef.current) {
+        isTypingRef.current = false;
+        sendTypingStatus(false);
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      }
+    }
   };
 
   const getRoleColor = (role: string) => {
@@ -339,25 +392,29 @@ function ChatView() {
           <p className="text-center text-xs text-muted-foreground py-8 font-mono">No messages yet.</p>
         ) : (
           messages.map((msg, idx) => {
-            const msgUser = (msg.username || "").trim().toLowerCase();
-            const currUser = (user?.username || "").trim().toLowerCase();
-            const isMe = msgUser === currUser && currUser !== "";
-            const roleColor = getRoleColor(msg.role);
+            // isMe logic: comparison with current user's username
+            const isMe = user?.username?.toLowerCase().trim() === msg.username?.toLowerCase().trim();
+            
             return (
-              <div key={msg.id || idx} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                <div className={`flex items-baseline gap-2 mb-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${roleColor}`}>
+              <div
+                key={msg.id || idx}
+                className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+              >
+                <div className={`flex items-center gap-2 mb-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                  <span className={`text-[10px] font-medium ${getRoleColor(msg.role)}`}>
                     {msg.username}
                   </span>
-                  <span className="text-[9px] text-muted-foreground">
-                    {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                <div className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm ${
-                  isMe 
-                    ? "bg-foreground text-background rounded-tr-sm" 
-                    : "bg-background border border-foreground/10 shadow-sm rounded-tl-sm"
-                }`}>
+                <div
+                  className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                    isMe
+                      ? "bg-primary text-primary-foreground rounded-tr-none"
+                      : "bg-foreground/5 text-foreground rounded-tl-none border border-foreground/10"
+                  }`}
+                >
                   {msg.content}
                 </div>
               </div>
@@ -367,23 +424,32 @@ function ChatView() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="p-3 pb-safe bg-background border-t border-foreground/10 shrink-0">
+      {/* Chat Input Area */}
+      <div className="p-4 bg-background border-t border-foreground/10 pb-[env(safe-area-inset-bottom,16px)]">
+        {/* Typing Indicator */}
+        {typingUsers.size > 0 && (
+          <div className="px-2 pb-2">
+            <p className="text-[10px] text-muted-foreground animate-pulse italic">
+              {Array.from(typingUsers).join(", ")} {typingUsers.size === 1 ? "sedang mengetik..." : "sedang mengetik..."}
+            </p>
+          </div>
+        )}
+        
         <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input 
-            placeholder="Ketik pesan..." 
+          <input
+            type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            className="rounded-full bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground/20 h-10 px-4 text-sm"
+            onChange={(e) => handleInputChange(e.target.value)}
+            placeholder="Tulis pesan..."
+            className="flex-1 px-4 py-2 bg-foreground/5 border border-foreground/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
-          <Button 
-            type="submit" 
-            size="icon" 
-            className="rounded-full shrink-0 h-10 w-10"
+          <button
+            type="submit"
             disabled={!inputMessage.trim()}
+            className="p-2 bg-primary text-primary-foreground rounded-xl disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
           >
-            <Send className="w-4 h-4" />
-          </Button>
+            <Send className="w-5 h-5" />
+          </button>
         </form>
       </div>
     </div>
