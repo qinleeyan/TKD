@@ -6,7 +6,8 @@ import { useAuth } from "@/context/auth-context";
 import { fetchWithAuth } from "@/lib/api";
 import { 
   Users, Trophy, Activity, MessageSquare, 
-  ChevronRight, ChevronLeft, Send, Loader2, Trash2
+  ChevronRight, ChevronLeft, Send, Loader2, Trash2,
+  MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ export function GlobalSidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [activeTab, setActiveTab] = useState<"stats" | "chat">("stats");
+  const [hasUnread, setHasUnread] = useState(false);
 
   // Don't render on public pages
   if (!user || pathname === "/" || pathname === "/login" || pathname === "/register") {
@@ -24,24 +26,41 @@ export function GlobalSidebar() {
 
   return (
     <>
+      {/* Backdrop for Mobile */}
+      {!isCollapsed && (
+        <div 
+          className="fixed inset-0 bg-background/40 backdrop-blur-sm z-[9998] lg:hidden animate-in fade-in duration-300"
+          onClick={() => setIsCollapsed(true)}
+        />
+      )}
       {/* Floating Toggle Button when collapsed */}
       <div 
-        className={`fixed left-0 top-1/2 -translate-y-1/2 z-50 transition-all duration-500 ${
+        className={`fixed left-0 top-1/2 -translate-y-1/2 z-[10000] transition-all duration-500 ${
           isCollapsed ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <button
-          onClick={() => setIsCollapsed(false)}
-          className="bg-foreground text-background py-3 pl-1 pr-2 rounded-r-xl shadow-2xl hover:pr-4 transition-all"
-          title="Open Hub"
+        <Button
+          variant="secondary"
+          size="icon"
+          className="h-12 w-10 rounded-l-none rounded-r-xl border-y border-r border-foreground/10 bg-secondary/80 backdrop-blur-md shadow-2xl relative"
+          onClick={() => {
+            setIsCollapsed(false);
+            setHasUnread(false);
+          }}
         >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+          <MessageCircle className="h-5 w-5" />
+          {hasUnread && (
+            <span className="absolute top-2 right-2 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+          )}
+        </Button>
       </div>
 
       {/* Sidebar Drawer */}
       <div 
-        className={`fixed top-0 left-0 h-[100dvh] bg-background/95 backdrop-blur-xl border-r border-foreground/10 shadow-2xl transition-transform duration-500 z-[100] flex flex-col w-80 sm:w-96 ${
+        className={`fixed top-0 left-0 h-[100dvh] bg-background/95 backdrop-blur-2xl border-r border-foreground/10 shadow-2xl transition-transform duration-500 z-[9999] flex flex-col w-[85vw] sm:w-80 md:w-96 ${
           isCollapsed ? "-translate-x-full" : "translate-x-0"
         }`}
       >
@@ -80,7 +99,10 @@ export function GlobalSidebar() {
                 ? "bg-background text-foreground shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-l border-r border-foreground/10 relative z-10" 
                 : "text-muted-foreground hover:bg-foreground/5 border-transparent"
             }`}
-            onClick={() => setActiveTab("chat")}
+            onClick={() => {
+                setActiveTab("chat");
+                setHasUnread(false);
+            }}
           >
             <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Admin Chat
@@ -94,7 +116,7 @@ export function GlobalSidebar() {
               <StatsView />
             </div>
           ) : (
-            <ChatView />
+            <ChatView isCollapsed={isCollapsed} setHasUnread={setHasUnread} />
           )}
         </div>
       </div>
@@ -187,12 +209,19 @@ interface ChatMessage {
   created_at: string;
 }
 
-function ChatView() {
+function ChatView({ isCollapsed, setHasUnread }: { isCollapsed: boolean, setHasUnread: (val: boolean) => void }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialize notification sound
+    audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3");
+    audioRef.current.volume = 0.5;
+  }, []);
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -256,6 +285,15 @@ function ChatView() {
         const data = JSON.parse(event.data);
         if (data.type === "chat_message") {
           setMessages((prev) => [...prev, data.message]);
+          
+          // Play sound and show dot if sidebar is closed or message is from someone else
+          if (isCollapsed || data.message.username !== user?.username) {
+            if (data.message.username !== user?.username) {
+              setHasUnread(true);
+              audioRef.current?.play().catch(() => {}); // Ignore interaction errors
+            }
+          }
+          
           // Remove user from typing list when message arrives
           setTypingUsers(prev => {
             const next = new Set(prev);
@@ -398,20 +436,20 @@ function ChatView() {
             return (
               <div
                 key={msg.id || idx}
-                className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                className={`flex flex-col ${isMe ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}
               >
                 <div className={`flex items-center gap-2 mb-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-                  <span className={`text-[10px] font-medium ${getRoleColor(msg.role)}`}>
-                    {msg.username}
+                  <span className={`text-[10px] font-bold ${isMe ? "text-primary" : getRoleColor(msg.role)}`}>
+                    {isMe ? "Anda" : msg.username}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[9px] text-muted-foreground opacity-60">
                     {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 <div
-                  className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                  className={`max-w-[88%] px-4 py-2.5 rounded-2xl text-sm shadow-md transition-all ${
                     isMe
-                      ? "bg-primary text-primary-foreground rounded-tr-none"
+                      ? "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
                       : "bg-foreground/5 text-foreground rounded-tl-none border border-foreground/10"
                   }`}
                 >

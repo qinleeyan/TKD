@@ -528,6 +528,12 @@ export default function MatchesPage() {
       toast.error(data?.message || "Gagal memproses data.");
       setProgressMessage("");
       setUploading(false);
+      setSaving(false);
+    }
+
+    if (event === "export_progress" && data) {
+      toast.loading(data.message || `Exporting... ${data.progress}%`, { id: "export_progress_toast" });
+      return;
     }
 
     // Direct Data Updates (Zero Latency - No API Fetch)
@@ -535,6 +541,9 @@ export default function MatchesPage() {
       setGroups(data.groups.map((item: any, index: number) => normalizeGroup(item, index)));
       setHasUnsavedChanges(false);
       setUploading(false);
+      setSaving(false);
+      setPreviewDialogOpen(false);
+      toast.success(data.message || "Grouping & Bracket disinkronisasi.");
       return;
     }
 
@@ -877,15 +886,28 @@ export default function MatchesPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Gagal menyimpan grouping.");
+      
+      if (res.status === 202) {
+        // Backend processing in background - Keep saving=true, WebSocket will stop it
+        toast.info(data.message || "Proses sinkronisasi dimulai...");
         return;
       }
-      setGroups((data.groups || []).map((item: any, index: number) => normalizeGroup(item, index)));
-      setPreviewDialogOpen(false);
-      setHasUnsavedChanges(false);
-      await Promise.all([loadMatches(), loadRounds()]);
-      toast.success("Grouping tersimpan dan bracket dibuat.");
+
+      if (!res.ok) {
+        toast.error(data.error || "Gagal menyimpan grouping.");
+        setSaving(false);
+        return;
+      }
+
+      // Fallback for direct response
+      if (data.groups) {
+        setGroups((data.groups || []).map((item: any, index: number) => normalizeGroup(item, index)));
+        setPreviewDialogOpen(false);
+        setHasUnsavedChanges(false);
+        setSaving(false);
+        await Promise.all([loadMatches(), loadRounds()]);
+        toast.success("Grouping tersimpan dan bracket dibuat.");
+      }
     } catch {
       toast.error("Tidak dapat menyimpan grouping.");
     } finally {
@@ -1232,7 +1254,8 @@ export default function MatchesPage() {
     if (hasUnsavedChanges && !confirm("Ada perubahan grouping yang belum disimpan. Perubahan ini mungkin tidak muncul di export PDF. Lanjutkan?")) {
       return;
     }
-    const toastId = toast.loading("Sedang menyiapkan file export...");
+    const toastId = "export_progress_toast";
+    toast.loading("Sedang menyiapkan file export...", { id: toastId });
     try {
       const res = await fetch(`${API_BASE_URL}${endpoint}`, { headers: getAuthHeaders() });
       if (!res.ok) {
