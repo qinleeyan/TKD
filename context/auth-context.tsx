@@ -5,12 +5,13 @@ import { useRouter, usePathname } from "next/navigation";
 
 interface User {
   role: string;
+  username: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (token: string, role: string) => void;
+  login: (token: string, role: string, username: string) => void;
   logout: () => void;
   checkAccess: (role: string, pathname: string) => boolean;
 }
@@ -35,14 +36,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_role");
+    localStorage.removeItem("user_username");
     setUser(null);
     window.location.href = "/";
   }, []);
 
-  const login = useCallback((token: string, role: string) => {
+  const login = useCallback((token: string, role: string, username: string) => {
     localStorage.setItem("auth_token", token);
     localStorage.setItem("user_role", role);
-    setUser({ role });
+    localStorage.setItem("user_username", username);
+    setUser({ role, username });
     
     // Initial redirect
     if (role === "register") router.push("/registrasi");
@@ -55,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = () => {
       const role = localStorage.getItem("user_role");
+      const username = localStorage.getItem("user_username");
       const token = localStorage.getItem("auth_token");
 
       if (!token) {

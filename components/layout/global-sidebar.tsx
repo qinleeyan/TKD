@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { fetchWithAuth } from "@/lib/api";
 import { 
   Users, Trophy, Activity, MessageSquare, 
-  ChevronRight, ChevronLeft, Send, Loader2
+  ChevronRight, ChevronLeft, Send, Loader2, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,9 +189,14 @@ function ChatView() {
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   // Fetch initial messages
   useEffect(() => {
@@ -202,7 +207,6 @@ function ChatView() {
           const data = await res.json();
           // The API returns newest first (descending), we want to show oldest first in chat UI
           setMessages(data.reverse());
-          setTimeout(scrollToBottom, 100);
         }
       } catch (err) {
         console.error("Failed to fetch chat history:", err);
@@ -243,7 +247,6 @@ function ChatView() {
         const data = JSON.parse(event.data);
         if (data.type === "chat_message") {
           setMessages((prev) => [...prev, data.message]);
-          setTimeout(scrollToBottom, 100);
         }
       } catch (e) {
         console.error("Error parsing WS message:", e);
@@ -279,19 +282,46 @@ function ChatView() {
     }
   };
 
+  const handleClearHistory = async () => {
+    if (confirm("Apakah Anda yakin ingin menghapus seluruh riwayat chat? Tindakan ini tidak dapat dibatalkan.")) {
+      try {
+        const res = await fetchWithAuth("/chat/messages/clear/", { method: "DELETE" });
+        if (res.ok) {
+          setMessages([]);
+        } else {
+          const data = await res.json();
+          alert(data.error || "Gagal menghapus chat.");
+        }
+      } catch (err) {
+        console.error("Gagal menghapus riwayat chat", err);
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-foreground/[0.02]">
       {/* Chat Info Header */}
-      <div className="bg-blue-500/10 border-b border-blue-500/20 p-3 shrink-0">
+      <div className="bg-blue-500/10 border-b border-blue-500/20 p-3 shrink-0 flex items-center justify-between">
         <div className="flex items-start gap-3">
           <div className="p-2 bg-blue-500/20 rounded-full">
             <Users className="w-4 h-4 text-blue-600" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide">Global Admin Group</h4>
-            <p className="text-[10px] text-blue-600/80 mt-0.5 leading-snug">Semua admin (Superadmin, Register, Operator) terhubung di sini.</p>
+            <p className="text-[10px] text-blue-600/80 mt-0.5 leading-snug">Semua admin terhubung di sini.</p>
           </div>
         </div>
+        {user?.role === "superadmin" && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-red-500 hover:text-red-600 hover:bg-red-500/10 shrink-0" 
+            onClick={handleClearHistory}
+            title="Hapus Riwayat Chat"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       {/* Messages Area */}
@@ -328,18 +358,18 @@ function ChatView() {
       </div>
 
       {/* Input Area */}
-      <div className="p-3 bg-background border-t border-foreground/10 shrink-0">
+      <div className="p-3 pb-safe bg-background border-t border-foreground/10 shrink-0">
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input 
-            placeholder="Type a message..." 
+            placeholder="Ketik pesan..." 
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            className="rounded-full bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground/20"
+            className="rounded-full bg-foreground/5 border-transparent focus-visible:ring-1 focus-visible:ring-foreground/20 h-10 px-4 text-sm"
           />
           <Button 
             type="submit" 
             size="icon" 
-            className="rounded-full shrink-0"
+            className="rounded-full shrink-0 h-10 w-10"
             disabled={!inputMessage.trim()}
           >
             <Send className="w-4 h-4" />

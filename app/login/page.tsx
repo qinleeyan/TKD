@@ -43,7 +43,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        login(data.token, data.user?.role || "");
+        login(data.token, data.user?.role || "", data.user?.username || "");
         toast.success("Login successful! Welcome back.");
       } else {
         toast.error(data.error || "Login failed. Please check your credentials.");
