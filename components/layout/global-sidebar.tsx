@@ -211,8 +211,9 @@ function ChatView() {
         const res = await fetchWithAuth("/chat/messages/");
         if (res.ok) {
           const data = await res.json();
-          // The API returns newest first (descending), we want to show oldest first in chat UI
-          setMessages(data.reverse());
+          // Handle paginated or non-paginated response
+          const messageList = Array.isArray(data) ? data : (data.results || []);
+          setMessages(messageList.reverse());
         }
       } catch (err) {
         console.error("Failed to fetch chat history:", err);
