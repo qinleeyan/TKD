@@ -1491,15 +1491,15 @@ export default function MatchesPage() {
                               <Download className="h-4 w-4" />
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8" title="Export PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
-                              <FileText className="h-4 w-4 text-red-500" />
+                              <FileText className="h-4 w-4" />
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Gambar" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
-                              <ImagePlus className="h-4 w-4 text-blue-500" />
+                              <ImagePlus className="h-4 w-4" />
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openGroupDialog(group)}>
                               <Edit3 className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteGroup(group)}>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive transition-all" onClick={() => deleteGroup(group)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1520,7 +1520,7 @@ export default function MatchesPage() {
                                   <p className="truncate font-medium">{athlete.nama}</p>
                                 </div>
                                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-500 uppercase">
+                                  <span className="inline-flex items-center rounded-md bg-foreground/5 px-1.5 py-0.5 text-[10px] font-bold text-foreground uppercase">
                                     {athlete.klub || "UMUM"}
                                   </span>
                                   <span className="text-[10px] text-muted-foreground">
@@ -1539,7 +1539,7 @@ export default function MatchesPage() {
                               <div className="flex justify-between"><span>Gender:</span> <span className="font-medium text-foreground">{genderLabel(athlete.gender)}</span></div>
                               <div className="col-span-2 flex justify-between mt-1 pt-1 border-t border-foreground/5">
                                 <span>Sabuk:</span> 
-                                <span className="font-bold text-primary">{sabukText(athlete)}</span>
+                                <span className="font-bold text-foreground uppercase">{sabukText(athlete)}</span>
                               </div>
                             </div>
                             <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>
@@ -1568,13 +1568,13 @@ export default function MatchesPage() {
 
             {/* Group Pagination */}
             {groupTotalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8 bg-background/50 backdrop-blur-sm p-4 rounded-2xl border border-foreground/5 mb-24">
+              <div className="flex items-center justify-center gap-4 mt-8 bg-background p-4 rounded-lg border border-foreground/5 mb-24">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setGroupPage(p => Math.max(1, p - 1))}
                   disabled={groupPage === 1}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
@@ -1586,7 +1586,7 @@ export default function MatchesPage() {
                   size="icon"
                   onClick={() => setGroupPage(p => Math.min(groupTotalPages, p + 1))}
                   disabled={groupPage === groupTotalPages}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </Button>
@@ -1594,7 +1594,7 @@ export default function MatchesPage() {
             )}
 
             {/* Sticky Action Bar */}
-            <div className="fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-foreground/10 bg-background/80 p-2 pr-6 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-500">
+            <div className="fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-foreground/10 bg-background/90 p-2 pr-6 shadow-xl backdrop-blur-md">
               <div className="flex items-center gap-2 pl-4 pr-4 border-r border-foreground/10">
                 <Badge variant="secondary" className="h-6 rounded-full px-2 font-mono text-[10px]">
                   {groups.length} Groups
@@ -1946,7 +1946,7 @@ export default function MatchesPage() {
                             <Button 
                               size="icon" 
                               variant="ghost" 
-                              className="h-9 w-9 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-all" 
+                              className="h-9 w-9 rounded-lg hover:bg-foreground/5 hover:text-foreground transition-all" 
                               onClick={() => openAthleteDialog(athlete)}
                               title="Edit atlet"
                             >
@@ -1955,7 +1955,7 @@ export default function MatchesPage() {
                             <Button 
                               size="icon" 
                               variant="ghost" 
-                              className="h-9 w-9 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all" 
+                              className="h-9 w-9 rounded-lg hover:bg-foreground/5 hover:text-foreground transition-all" 
                               onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
                               title="Hapus atlet"
                             >
@@ -2429,13 +2429,13 @@ export default function MatchesPage() {
             <div className="flex-1" />
             <Button 
               variant="outline" 
-              className="h-11 rounded-xl px-8 border-foreground/10 hover:bg-foreground/5 transition-all text-sm font-medium" 
+              className="h-11 rounded-lg px-8 border-foreground/10 hover:bg-foreground/5 transition-all text-sm font-medium" 
               onClick={() => setPreviewDialogOpen(false)}
             >
               Lanjut edit
             </Button>
             <Button 
-              className="h-11 rounded-xl px-10 bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl shadow-foreground/10 text-sm font-bold" 
+              className="h-11 rounded-lg px-10 bg-foreground text-background hover:bg-foreground/90 transition-all text-sm font-bold" 
               disabled={saving} 
               onClick={handleConfirmGroups}
             >
