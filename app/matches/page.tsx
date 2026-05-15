@@ -47,8 +47,17 @@ import {
   FileText,
   ImagePlus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MoreVertical,
+  MoveHorizontal,
+  Pencil
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useRealtime } from "@/hooks/use-realtime";
 
@@ -367,6 +376,9 @@ export default function MatchesPage() {
   const [editingMatch, setEditingMatch] = useState<MatchRow | null>(null);
   const [groupForm, setGroupForm] = useState({ name: "", gender: "0" });
   const [draggedAthlete, setDraggedAthlete] = useState<{ athleteId: string; fromGroup: string } | null>(null);
+  const [movingAthlete, setMovingAthlete] = useState<{ athlete: AthleteCard; fromGroup: string } | null>(null);
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [moveGroupSearch, setMoveGroupSearch] = useState("");
   const [previewSearch, setPreviewSearch] = useState("");
   const [previewGender, setPreviewGender] = useState<string>("all");
   const [previewClass, setPreviewClass] = useState<string>("all");
@@ -1522,29 +1534,44 @@ export default function MatchesPage() {
                                     <span className="opacity-20">•</span>
                                     <span>{athlete.berat_kg}kg</span>
                                     <span className="opacity-20">•</span>
-                                    <span className="truncate max-w-[90px]">{athlete.klub || athlete.kontingen || "UMUM"}</span>
+                                    <span>{athlete.tinggi_cm}cm</span>
+                                    <span className="opacity-20">•</span>
+                                    <span className="truncate max-w-[100px]">{athlete.klub || athlete.kontingen || "UMUM"}</span>
                                   </div>
-                                  <div className="flex items-center gap-1 opacity-0 group-hover/athlete:opacity-100 transition-opacity">
-                                    <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>
-                                      <SelectTrigger className="h-5 w-5 p-0 border-none bg-transparent hover:bg-foreground/5 focus:ring-0">
-                                        <Edit3 className="h-3 w-3 text-muted-foreground" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {groups.map((candidate, ci) => {
-                                          const cKey = groupKey(candidate, ci);
-                                          return (
-                                            <SelectItem key={cKey} value={cKey}>{candidate.group_name}</SelectItem>
-                                          );
-                                        })}
-                                      </SelectContent>
-                                    </Select>
-                                    <Button size="icon" variant="ghost" className="h-5 w-5 text-muted-foreground" onClick={() => editAthlete(athlete)}>
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button size="icon" variant="ghost" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeAthlete(key, athleteKey(athlete))}>
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
+                                  
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="icon" variant="ghost" className="h-5 w-5 opacity-0 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity">
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 shadow-xl border-foreground/10">
+                                      <DropdownMenuItem 
+                                        className="rounded-lg gap-2 cursor-pointer"
+                                        onClick={() => {
+                                          setMovingAthlete({ athlete, fromGroup: key });
+                                          setIsMoveDialogOpen(true);
+                                        }}
+                                      >
+                                        <MoveHorizontal className="h-3.5 w-3.5 text-blue-500" />
+                                        <span className="text-xs font-semibold">Pindahkan ke Kelompok</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        className="rounded-lg gap-2 cursor-pointer"
+                                        onClick={() => editAthlete(athlete)}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5 text-amber-500" />
+                                        <span className="text-xs font-semibold">Edit Data Atlet</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        className="rounded-lg gap-2 cursor-pointer text-destructive focus:text-destructive"
+                                        onClick={() => removeAthlete(key, athleteKey(athlete))}
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                        <span className="text-xs font-semibold">Hapus dari Kelompok</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </div>
                             </div>
@@ -2252,30 +2279,46 @@ export default function MatchesPage() {
                                             <span className="opacity-20">•</span>
                                             <span>{athlete.berat_kg}KG</span>
                                             <span className="opacity-20">•</span>
-                                            <span className="truncate max-w-[120px]">{athlete.klub || athlete.kontingen || "UMUM"}</span>
+                                            <span>{athlete.tinggi_cm}CM</span>
+                                            <span className="opacity-20">•</span>
+                                            <span className="truncate max-w-[130px]">{athlete.klub || athlete.kontingen || "UMUM"}</span>
                                           </div>
-                                          <div className="flex items-center gap-0.5 opacity-0 group-hover/athlete:opacity-100 transition-opacity">
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                              onClick={() => removeAthlete(key, athleteKey(athlete))}
-                                              title="Keluarkan dari kelompok"
-                                            >
-                                              <X className="h-3 w-3" />
-                                            </Button>
-                                            {athlete.id && (
-                                              <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                                onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
-                                                title="Hapus permanen"
-                                              >
-                                                <Trash2 className="h-3 w-3" />
+                                          
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity">
+                                                <MoreVertical className="h-3.5 w-3.5" />
                                               </Button>
-                                            )}
-                                          </div>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 shadow-xl border-foreground/10">
+                                              <DropdownMenuItem 
+                                                className="rounded-lg gap-2 cursor-pointer"
+                                                onClick={() => {
+                                                  setMovingAthlete({ athlete, fromGroup: key });
+                                                  setIsMoveDialogOpen(true);
+                                                }}
+                                              >
+                                                <MoveHorizontal className="h-3.5 w-3.5 text-blue-500" />
+                                                <span className="text-xs font-semibold">Pindahkan ke Kelompok</span>
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem 
+                                                className="rounded-lg gap-2 cursor-pointer text-destructive focus:text-destructive"
+                                                onClick={() => removeAthlete(key, athleteKey(athlete))}
+                                              >
+                                                <X className="h-3.5 w-3.5" />
+                                                <span className="text-xs font-semibold">Keluarkan dari Kelompok</span>
+                                              </DropdownMenuItem>
+                                              {athlete.id && (
+                                                <DropdownMenuItem 
+                                                  className="rounded-lg gap-2 cursor-pointer text-destructive focus:text-destructive"
+                                                  onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
+                                                >
+                                                  <Trash2 className="h-3.5 w-3.5" />
+                                                  <span className="text-xs font-semibold">Hapus Permanen</span>
+                                                </DropdownMenuItem>
+                                              )}
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
                                         </div>
                                       </div>
                                     </div>
@@ -2490,6 +2533,66 @@ export default function MatchesPage() {
             <Button variant="outline" className="rounded-lg" onClick={() => setGroupDialogOpen(false)}>Batal</Button>
             <Button className="rounded-lg bg-foreground text-background hover:bg-foreground/90" onClick={saveGroup}>Simpan</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog Pindahkan Atlet */}
+      <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
+          <DialogHeader className="p-6 pb-2 bg-foreground/[0.02]">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <MoveHorizontal className="h-5 w-5 text-primary" />
+              Pindahkan Atlet
+            </DialogTitle>
+            <DialogDescription className="text-xs uppercase tracking-wider font-semibold opacity-60">
+              {movingAthlete?.athlete.nama}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-6 pt-2 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+              <Input 
+                placeholder="Cari kelompok tujuan..." 
+                className="pl-10 h-11 bg-foreground/[0.03] border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20"
+                value={moveGroupSearch}
+                onChange={(e) => setMoveGroupSearch(e.target.value)}
+              />
+            </div>
+            
+            <ScrollArea className="h-[300px] pr-4">
+              <div className="grid gap-2">
+                {groups
+                  .filter(g => g.group_name.toLowerCase().includes(moveGroupSearch.toLowerCase()))
+                  .map((group, idx) => {
+                    const targetKey = groupKey(group, idx);
+                    if (targetKey === movingAthlete?.fromGroup) return null;
+                    
+                    return (
+                      <Button
+                        key={targetKey}
+                        variant="ghost"
+                        className="justify-between h-12 px-4 rounded-xl hover:bg-primary/[0.05] hover:text-primary transition-all group"
+                        onClick={() => {
+                          if (movingAthlete) {
+                            moveAthlete(movingAthlete.fromGroup, targetKey, athleteKey(movingAthlete.athlete));
+                            setIsMoveDialogOpen(false);
+                            setMovingAthlete(null);
+                            setMoveGroupSearch("");
+                          }
+                        }}
+                      >
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="font-bold text-sm truncate uppercase">{group.group_name}</span>
+                          <span className="text-[10px] opacity-50 uppercase">{group.gender_display || genderLabel(group.gender)} • {group.athletes.length} Atlet</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all text-primary" />
+                      </Button>
+                    );
+                })}
+              </div>
+            </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
