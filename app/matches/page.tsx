@@ -318,14 +318,15 @@ export default function MatchesPage() {
     const total = athletes.length;
     const male = athletes.filter(a => a.gender === 0).length;
     const female = athletes.filter(a => a.gender === 1).length;
-    const kyorugi = athletes.filter(a => a.category === 0).length;
-    const poomsae = athletes.filter(a => a.category === 1).length;
+    // Category stats are based on selectedCategory, not per-athlete
+    const kyorugi = selectedCategory === 'kyourugi' ? total : 0;
+    const poomsae = selectedCategory === 'poomsae' ? total : 0;
     const prestasi = athletes.filter(a => a.class_level === '1').length;
     const pemula = athletes.filter(a => a.class_level === '0').length;
     const groupsCount = groups.length;
     
     return { total, male, female, kyorugi, poomsae, prestasi, pemula, groupsCount };
-  }, [athletes, groups]);
+  }, [athletes, groups, selectedCategory]);
 
   const uniqueClubs = useMemo(() => {
     const clubs = athletes.map(a => a.klub).filter(Boolean) as string[];
@@ -1263,54 +1264,111 @@ export default function MatchesPage() {
       <Navigation />
 
       <div className="relative z-10 mx-auto max-w-[1400px] px-6 pb-16 pt-28 lg:px-10">
-        {/* DASHBOARD SUMMARY */}
-        <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8">
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+        {/* PROFESSIONAL ADMIN DASHBOARD SUMMARY */}
+        <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+          {/* Total Athletes */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
-              <h3 className="mt-1 text-2xl font-display">{stats.total}</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
+                  <h3 className="mt-2 text-3xl font-display font-bold text-foreground">{stats.total}</h3>
+                </div>
+                <Users className="h-8 w-8 text-primary/20" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+
+          {/* Gender Breakdown */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Putra / Putri</p>
-              <h3 className="mt-1 text-2xl font-display text-blue-500">{stats.male} <span className="text-muted-foreground/30 mx-1">/</span> <span className="text-pink-500">{stats.female}</span></h3>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Gender</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-display font-bold">
+                  <span className="text-blue-500">{stats.male}</span>
+                  <span className="text-muted-foreground/40 text-xl mx-1">/</span>
+                  <span className="text-pink-500">{stats.female}</span>
+                </span>
+              </div>
+              <p className="text-[8px] text-muted-foreground mt-1">Putra / Putri</p>
             </CardContent>
           </Card>
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+
+          {/* Kyorugi Category */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Kyorugi</p>
-              <h3 className="mt-1 text-2xl font-display">{stats.kyorugi}</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kyourugi</p>
+                  <h3 className="mt-2 text-3xl font-display font-bold text-amber-600">{stats.kyorugi}</h3>
+                </div>
+                <Swords className="h-8 w-8 text-amber-600/20" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+
+          {/* Poomsae Category */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Poomsae</p>
-              <h3 className="mt-1 text-2xl font-display">{stats.poomsae}</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Poomsae</p>
+                  <h3 className="mt-2 text-3xl font-display font-bold text-purple-600">{stats.poomsae}</h3>
+                </div>
+                <Trophy className="h-8 w-8 text-purple-600/20" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+
+          {/* Prestasi Class */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Prestasi</p>
-              <h3 className="mt-1 text-2xl font-display">{stats.prestasi}</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Prestasi</p>
+                  <h3 className="mt-2 text-3xl font-display font-bold text-emerald-600">{stats.prestasi}</h3>
+                </div>
+                <Activity className="h-8 w-8 text-emerald-600/20" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+
+          {/* Pemula Class */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Pemula</p>
-              <h3 className="mt-1 text-2xl font-display">{stats.pemula}</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Pemula</p>
+                  <h3 className="mt-2 text-3xl font-display font-bold text-cyan-600">{stats.pemula}</h3>
+                </div>
+                <UserCheck className="h-8 w-8 text-cyan-600/20" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md">
+
+          {/* Groups Count */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all sm:col-span-2 lg:col-span-1">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Kelompok</p>
-              <h3 className="mt-1 text-2xl font-display">{stats.groupsCount}</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kelompok</p>
+                  <h3 className="mt-2 text-3xl font-display font-bold text-orange-600">{stats.groupsCount}</h3>
+                </div>
+                <Swords className="h-8 w-8 text-orange-600/20" />
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-foreground/5 bg-background/40 backdrop-blur-md lg:hidden xl:block">
+
+          {/* Check-in Count */}
+          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all lg:hidden xl:block">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Check-in</p>
-              <h3 className="mt-1 text-2xl font-display text-emerald-500">{athletes.filter(a => a.is_checked_in).length}</h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Hadir</p>
+                  <h3 className="mt-2 text-3xl font-display font-bold text-emerald-500">{athletes.filter(a => a.is_checked_in).length}</h3>
+                </div>
+                <CheckCircle2 className="h-8 w-8 text-emerald-500/20" />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -1635,41 +1693,90 @@ export default function MatchesPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="athletes">
-            <div className="mb-6 flex flex-col gap-6">
-              {/* ADVANCED FILTERS */}
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-                <Card className="lg:col-span-1 border-foreground/10 bg-background/50">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-50">Cari Atlet</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+          <TabsContent value="athletes" className="space-y-6">
+            {/* ATHLETE DASHBOARD STATS */}
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <Card className="border-foreground/10 bg-background/60">
+                <CardContent className="p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
+                  <p className="mt-2 text-2xl font-display font-bold">{filteredAthleteList.length}</p>
+                  <p className="text-[8px] text-muted-foreground mt-1">dari {athletes.length} total</p>
+                </CardContent>
+              </Card>
+              <Card className="border-foreground/10 bg-background/60">
+                <CardContent className="p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Gender</p>
+                  <p className="mt-2 text-xl font-display font-bold">
+                    <span className="text-blue-500">{filteredAthleteList.filter(a => a.gender === 0).length}</span>
+                    <span className="text-muted-foreground/20 text-sm mx-1">/</span>
+                    <span className="text-pink-500">{filteredAthleteList.filter(a => a.gender === 1).length}</span>
+                  </p>
+                  <p className="text-[8px] text-muted-foreground mt-1">Putra / Putri</p>
+                </CardContent>
+              </Card>
+              <Card className="border-foreground/10 bg-background/60">
+                <CardContent className="p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kelas</p>
+                  <p className="mt-2 text-xl font-display font-bold">
+                    <span className="text-emerald-600">{filteredAthleteList.filter(a => a.class_level === '1').length}</span>
+                    <span className="text-muted-foreground/20 text-sm mx-1">/</span>
+                    <span className="text-cyan-600">{filteredAthleteList.filter(a => a.class_level === '0').length}</span>
+                  </p>
+                  <p className="text-[8px] text-muted-foreground mt-1">Prestasi / Pemula</p>
+                </CardContent>
+              </Card>
+              <Card className="border-foreground/10 bg-background/60">
+                <CardContent className="p-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Klub Unik</p>
+                  <p className="mt-2 text-2xl font-display font-bold">{uniqueClubs.length}</p>
+                  <p className="text-[8px] text-muted-foreground mt-1">Kontingen</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* SEARCH & FILTERS SECTION */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Filter & Pencarian</h3>
+              </div>
+
+              <Card className="border-foreground/10 bg-background/60 overflow-hidden">
+                <CardContent className="p-6 space-y-6">
+                  {/* Search Row */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Cari Atlet (Nama / Klub)</Label>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        placeholder="Nama atau Klub..."
-                        className="pl-9 bg-background/50 border-foreground/10"
+                        placeholder="Ketik nama atlet atau nama klub..."
+                        className="pl-9 h-11 bg-background/50 border-foreground/10 rounded-lg focus:border-foreground/30 transition-all"
                         value={athleteSearch}
                         onChange={(e) => setAthleteSearch(e.target.value)}
                       />
                     </div>
+                  </div>
+
+                  {/* Primary Filters Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Gender</Label>
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gender</Label>
                       <Select value={athleteGenderFilter} onValueChange={setAthleteGenderFilter}>
-                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10">
+                        <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
                           <SelectValue placeholder="Semua Gender" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Semua Gender</SelectItem>
-                          <SelectItem value="0">Laki-laki</SelectItem>
-                          <SelectItem value="1">Perempuan</SelectItem>
+                          <SelectItem value="0">Putra</SelectItem>
+                          <SelectItem value="1">Putri</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sabuk</Label>
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sabuk (Belt)</Label>
                       <Select value={athleteBeltFilter} onValueChange={setAthleteBeltFilter}>
-                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10">
+                        <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
                           <SelectValue placeholder="Semua Sabuk" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1680,160 +1787,223 @@ export default function MatchesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </CardContent>
-                </Card>
 
-                <Card className="lg:col-span-3 border-foreground/10 bg-background/50">
-                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-50">Filter Lanjutan</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col h-full justify-between">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Range Umur (th)</Label>
-                        <div className="flex items-center gap-2">
-                          <Input type="number" placeholder="Min" className="h-10 bg-background/50 border-foreground/10" value={athleteAgeMin} onChange={e => setAthleteAgeMin(e.target.value)} />
-                          <span className="text-muted-foreground">-</span>
-                          <Input type="number" placeholder="Max" className="h-10 bg-background/50 border-foreground/10" value={athleteAgeMax} onChange={e => setAthleteAgeMax(e.target.value)} />
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Range Berat (kg)</Label>
-                        <div className="flex items-center gap-2">
-                          <Input type="number" placeholder="Min" className="h-10 bg-background/50 border-foreground/10" value={athleteWeightMin} onChange={e => setAthleteWeightMin(e.target.value)} />
-                          <span className="text-muted-foreground">-</span>
-                          <Input type="number" placeholder="Max" className="h-10 bg-background/50 border-foreground/10" value={athleteWeightMax} onChange={e => setAthleteWeightMax(e.target.value)} />
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Range Tinggi (cm)</Label>
-                        <div className="flex items-center gap-2">
-                          <Input type="number" placeholder="Min" className="h-10 bg-background/50 border-foreground/10" value={athleteHeightMin} onChange={e => setAthleteHeightMin(e.target.value)} />
-                          <span className="text-muted-foreground">-</span>
-                          <Input type="number" placeholder="Max" className="h-10 bg-background/50 border-foreground/10" value={athleteHeightMax} onChange={e => setAthleteHeightMax(e.target.value)} />
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Klub / Instansi</Label>
-                        <Select value={athleteClubFilter} onValueChange={setAthleteClubFilter}>
-                          <SelectTrigger className="bg-background/50 border-foreground/10 h-10">
-                            <SelectValue placeholder="Semua Klub" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Semua Klub</SelectItem>
-                            {uniqueClubs.map(club => (
-                              <SelectItem key={club} value={club}>{club}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-end gap-2 md:col-span-2">
-                         <Button variant="ghost" size="sm" className="flex-1 text-[10px] font-bold h-10 border border-foreground/5" onClick={() => {
-                          setAthleteSearch(""); setAthleteGenderFilter("all"); setAthleteBeltFilter("all");
-                          setAthleteClubFilter("all"); setAthleteAgeMin(""); setAthleteAgeMax("");
-                          setAthleteWeightMin(""); setAthleteWeightMax("");
-                          setAthleteHeightMin(""); setAthleteHeightMax("");
-                        }}>
-                          RESET FILTER
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="flex-1 h-10 rounded-lg border-blue-500/20 text-blue-600 hover:bg-blue-500/5 font-bold text-xs"
-                          onClick={() => downloadWithAuth(`/matches/weight_classes/export-all-pdf/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}`, `bracket-${selectedCategory}.pdf`)}
-                        >
-                          <FileText className="mr-2 h-4 w-4" />
-                          EXPORT BAGAN
-                        </Button>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Klub / Instansi</Label>
+                      <Select value={athleteClubFilter} onValueChange={setAthleteClubFilter}>
+                        <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
+                          <SelectValue placeholder="Semua Klub" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Semua Klub</SelectItem>
+                          {uniqueClubs.map(club => (
+                            <SelectItem key={club} value={club}>{club}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Range Filters Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Usia (Tahun)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          type="number" 
+                          placeholder="Min" 
+                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                          value={athleteAgeMin} 
+                          onChange={e => setAthleteAgeMin(e.target.value)} 
+                        />
+                        <span className="text-muted-foreground text-xs font-bold">–</span>
+                        <Input 
+                          type="number" 
+                          placeholder="Max" 
+                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                          value={athleteAgeMax} 
+                          onChange={e => setAthleteAgeMax(e.target.value)} 
+                        />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
 
-              {/* ATHLETE LIST TABLE */}
-              <Card className="overflow-hidden border-foreground/10 bg-background/70">
-                <Table>
-                  <TableHeader className="bg-foreground/[0.02]">
-                    <TableRow>
-                      <TableHead className="font-bold">Nama Atlet</TableHead>
-                      <TableHead className="font-bold">Info Fisik</TableHead>
-                      <TableHead className="font-bold">Kategori & Kelas</TableHead>
-                      <TableHead className="font-bold">Klub / Kontingen</TableHead>
-                      <TableHead className="font-bold text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAthleteList.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                          Tidak ada atlet yang cocok dengan filter.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredAthleteList.map((athlete) => (
-                        <TableRow key={athlete.id} className="hover:bg-foreground/[0.01] transition-colors">
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-base">{athlete.nama}</span>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge variant={athlete.gender === 0 ? "default" : "secondary"} className="text-[9px] h-4 px-1.5 uppercase font-black">
-                                  {athlete.gender === 0 ? "Putra" : "Putri"}
-                                </Badge>
-                                <span className="text-[10px] font-bold text-primary uppercase">{sabukText(athlete).split(' - ')[1]}</span>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col gap-1 text-[11px]">
-                              <div className="flex justify-between w-24">
-                                <span className="text-muted-foreground">Usia:</span>
-                                <span className="font-mono font-bold">{athlete.umur} th</span>
-                              </div>
-                              <div className="flex justify-between w-24">
-                                <span className="text-muted-foreground">Berat:</span>
-                                <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
-                              </div>
-                              <div className="flex justify-between w-24">
-                                <span className="text-muted-foreground">Tinggi:</span>
-                                <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col gap-1">
-                              <Badge variant="outline" className="w-fit text-[10px] border-foreground/10 bg-foreground/[0.03]">
-                                {athlete.category === 0 ? "Kyourugi" : "Poomsae"}
-                              </Badge>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                {athlete.class_level === '1' ? 'PRESTASI' : 'PEMULA'}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-sm text-blue-600 uppercase">{athlete.klub || "UMUM"}</span>
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{athlete.kontingen || "-"}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-blue-500/10 hover:text-blue-500" onClick={() => openAthleteDialog(athlete)}>
-                                <Edit3 className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteAthlete(athlete.id!)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Berat Badan (kg)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          type="number" 
+                          placeholder="Min" 
+                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                          value={athleteWeightMin} 
+                          onChange={e => setAthleteWeightMin(e.target.value)} 
+                        />
+                        <span className="text-muted-foreground text-xs font-bold">–</span>
+                        <Input 
+                          type="number" 
+                          placeholder="Max" 
+                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                          value={athleteWeightMax} 
+                          onChange={e => setAthleteWeightMax(e.target.value)} 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tinggi Badan (cm)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          type="number" 
+                          placeholder="Min" 
+                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                          value={athleteHeightMin} 
+                          onChange={e => setAthleteHeightMin(e.target.value)} 
+                        />
+                        <span className="text-muted-foreground text-xs font-bold">–</span>
+                        <Input 
+                          type="number" 
+                          placeholder="Max" 
+                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                          value={athleteHeightMax} 
+                          onChange={e => setAthleteHeightMax(e.target.value)} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-foreground/5">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-10 text-xs font-bold rounded-lg border border-foreground/10 hover:bg-foreground/5"
+                      onClick={() => {
+                        setAthleteSearch(""); 
+                        setAthleteGenderFilter("all"); 
+                        setAthleteBeltFilter("all");
+                        setAthleteClubFilter("all"); 
+                        setAthleteAgeMin(""); 
+                        setAthleteAgeMax("");
+                        setAthleteWeightMin(""); 
+                        setAthleteWeightMax("");
+                        setAthleteHeightMin(""); 
+                        setAthleteHeightMax("");
+                      }}
+                    >
+                      <Eraser className="mr-2 h-3 w-3" />
+                      Reset Filter
+                    </Button>
+                  </div>
+                </CardContent>
               </Card>
             </div>
-          </TabsContent>
 
+            {/* ATHLETE LIST TABLE */}
+            <Card className="overflow-hidden border-foreground/10 bg-background/70">
+              <Table>
+                <TableHeader className="bg-foreground/[0.02] border-b border-foreground/5">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Nama Atlet</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Info Fisik</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Kategori & Kelas</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider">Klub / Kontingen</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAthleteList.length === 0 ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center gap-2">
+                          <Search className="h-8 w-8 opacity-20" />
+                          <p className="text-sm">Tidak ada atlet yang cocok dengan filter.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredAthleteList.map((athlete) => (
+                      <TableRow key={athlete.id} className="hover:bg-foreground/[0.02] transition-colors border-b border-foreground/5">
+                        <TableCell className="py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-bold text-sm leading-tight">{athlete.nama}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge 
+                                variant={athlete.gender === 0 ? "default" : "secondary"} 
+                                className="text-[8px] h-5 px-2 uppercase font-bold"
+                              >
+                                {athlete.gender === 0 ? "Putra" : "Putri"}
+                              </Badge>
+                              <Badge 
+                                variant="outline"
+                                className="text-[8px] h-5 px-2 border-foreground/10 bg-foreground/[0.03] font-bold"
+                              >
+                                {sabukLabels[normalizeSabukCode(athlete.sabuk)] || "PUTIH"}
+                              </Badge>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex flex-col gap-2 text-[12px]">
+                            <div className="flex items-center justify-between w-32">
+                              <span className="text-muted-foreground font-medium">Usia:</span>
+                              <span className="font-mono font-bold">{athlete.umur} th</span>
+                            </div>
+                            <div className="flex items-center justify-between w-32">
+                              <span className="text-muted-foreground font-medium">Berat:</span>
+                              <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
+                            </div>
+                            <div className="flex items-center justify-between w-32">
+                              <span className="text-muted-foreground font-medium">Tinggi:</span>
+                              <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex flex-col gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className="w-fit text-[9px] border-foreground/10 bg-foreground/[0.03] font-bold uppercase"
+                            >
+                              Kategori TBD
+                            </Badge>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                              {athlete.class_level === '1' ? 'PRESTASI' : 'PEMULA'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold text-sm text-blue-600 uppercase">{athlete.klub || "—"}</span>
+                            <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{athlete.kontingen || "—"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right py-4">
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-9 w-9 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-all" 
+                              onClick={() => openAthleteDialog(athlete)}
+                              title="Edit atlet"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-9 w-9 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all" 
+                              onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
+                              title="Hapus atlet"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
@@ -2107,7 +2277,7 @@ export default function MatchesPage() {
                                               size="icon" 
                                               variant="ghost" 
                                               className="h-6 w-6 text-muted-foreground hover:text-destructive" 
-                                              onClick={() => deleteAthlete(athlete.id)}
+                                              onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
                                               title="Hapus permanen dari database"
                                             >
                                               <Trash2 className="h-3 w-3" />
