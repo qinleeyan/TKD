@@ -1,6 +1,4 @@
 "use client";
-// Build trigger: 2026-05-15 13:20
-
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -1639,143 +1637,40 @@ export default function MatchesPage() {
 
           <TabsContent value="athletes">
             <div className="mb-6 flex flex-col gap-6">
-              {/* ADMIN DASHBOARD HEADER */}
-              <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-display font-bold">Dashboard Statistik Atlet</h2>
-                <p className="text-sm text-muted-foreground">Ringkasan data dan statistik peserta pertandingan</p>
-              </div>
-
-              {/* ATHLETE DASHBOARD METRICS */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-                <Card className="border-foreground/5 bg-gradient-to-br from-foreground/[0.06] to-foreground/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold">{filteredAthleteList.length}</h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">dari {athletes.length} atlet</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-foreground/5 bg-gradient-to-br from-blue-500/[0.08] to-blue-500/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Putra</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold text-blue-600">{filteredAthleteList.filter(a => a.gender === 0).length}</h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">{athletes.length > 0 ? Math.round(filteredAthleteList.filter(a => a.gender === 0).length / filteredAthleteList.length * 100) : 0}%</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-foreground/5 bg-gradient-to-br from-pink-500/[0.08] to-pink-500/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Putri</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold text-pink-600">{filteredAthleteList.filter(a => a.gender === 1).length}</h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">{athletes.length > 0 ? Math.round(filteredAthleteList.filter(a => a.gender === 1).length / filteredAthleteList.length * 100) : 0}%</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-foreground/5 bg-gradient-to-br from-purple-500/[0.08] to-purple-500/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kyourugi</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold text-purple-600">{filteredAthleteList.filter(a => a.category === 0 || !a.category).length}</h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">kategori</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-foreground/5 bg-gradient-to-br from-orange-500/[0.08] to-orange-500/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Poomsae</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold text-orange-600">{filteredAthleteList.filter(a => a.category === 1).length}</h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">kategori</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-foreground/5 bg-gradient-to-br from-emerald-500/[0.08] to-emerald-500/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Prestasi</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold text-emerald-600">{filteredAthleteList.filter(a => a.class_level === '1').length}</h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">kelas</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-foreground/5 bg-gradient-to-br from-cyan-500/[0.08] to-cyan-500/[0.02] backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Pemula</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold text-cyan-600">{filteredAthleteList.filter(a => a.class_level !== '1').length}</h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">kelas</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-foreground/5 bg-gradient-to-br from-amber-500/[0.08] to-amber-500/[0.02] backdrop-blur-sm lg:hidden xl:block">
-                  <CardContent className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Avg. Usia</p>
-                    <h3 className="mt-2 text-2xl font-display font-bold text-amber-600">
-                      {filteredAthleteList.length > 0 ? Math.round(filteredAthleteList.reduce((sum, a) => sum + (a.umur || 0), 0) / filteredAthleteList.length) : 0}
-                    </h3>
-                    <p className="mt-1 text-[9px] text-muted-foreground/60">tahun</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* FILTER SECTION HEADER */}
-              <div className="pt-2 mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-lg font-display font-bold">Data Atlet</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">Kelola dan filter data peserta sesuai kriteria yang dibutuhkan</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="h-9 text-xs font-bold border border-foreground/5 rounded-lg" onClick={() => {
-                    setAthleteSearch(""); setAthleteGenderFilter("all"); setAthleteBeltFilter("all");
-                    setAthleteClubFilter("all"); setAthleteAgeMin(""); setAthleteAgeMax("");
-                    setAthleteWeightMin(""); setAthleteWeightMax("");
-                    setAthleteHeightMin(""); setAthleteHeightMax("");
-                  }}>
-                    <Eraser className="mr-1.5 h-3.5 w-3.5" />
-                    RESET FILTER
-                  </Button>
-                </div>
-              </div>
-
               {/* ADVANCED FILTERS */}
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-                {/* BASIC SEARCH & GENDER FILTER */}
-                <Card className="lg:col-span-1 border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-foreground/[0.01] backdrop-blur-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pencarian & Gender</CardTitle>
+                <Card className="lg:col-span-1 border-foreground/10 bg-background/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-50">Cari Atlet</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* SEARCH BY NAME */}
-                    <div>
-                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Nama Atlet</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="Cari nama..."
-                          className="pl-9 h-10 bg-background/50 border-foreground/10 rounded-lg text-sm"
-                          value={athleteSearch}
-                          onChange={(e) => setAthleteSearch(e.target.value)}
-                        />
-                      </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Nama atau Klub..."
+                        className="pl-9 bg-background/50 border-foreground/10"
+                        value={athleteSearch}
+                        onChange={(e) => setAthleteSearch(e.target.value)}
+                      />
                     </div>
-
-                    {/* GENDER FILTER */}
-                    <div>
-                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Gender</Label>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Gender</Label>
                       <Select value={athleteGenderFilter} onValueChange={setAthleteGenderFilter}>
-                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10 rounded-lg">
-                          <SelectValue />
+                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10">
+                          <SelectValue placeholder="Semua Gender" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Semua Gender</SelectItem>
-                          <SelectItem value="0">Laki-laki (Putra)</SelectItem>
-                          <SelectItem value="1">Perempuan (Putri)</SelectItem>
+                          <SelectItem value="0">Laki-laki</SelectItem>
+                          <SelectItem value="1">Perempuan</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-
-                    {/* BELT FILTER */}
-                    <div>
-                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Sabuk</Label>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Sabuk</Label>
                       <Select value={athleteBeltFilter} onValueChange={setAthleteBeltFilter}>
-                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10 rounded-lg">
-                          <SelectValue />
+                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10">
+                          <SelectValue placeholder="Semua Sabuk" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Semua Sabuk</SelectItem>
@@ -1785,107 +1680,69 @@ export default function MatchesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-
-                    {/* CLUB FILTER */}
-                    <div>
-                      <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2 inline-block">Klub / Instansi</Label>
-                      <Select value={athleteClubFilter} onValueChange={setAthleteClubFilter}>
-                        <SelectTrigger className="bg-background/50 border-foreground/10 h-10 rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Klub</SelectItem>
-                          {uniqueClubs.map(club => (
-                            <SelectItem key={club} value={club}>{club}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </CardContent>
                 </Card>
 
-                {/* ADVANCED RANGE FILTERS */}
-                <Card className="lg:col-span-3 border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-foreground/[0.01] backdrop-blur-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Filter Rentang Fisik</CardTitle>
+                <Card className="lg:col-span-3 border-foreground/10 bg-background/50">
+                   <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-50">Filter Lanjutan</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex flex-col h-full justify-between">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* AGE RANGE */}
-                      <div className="space-y-2">
-                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Usia (tahun)</Label>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Range Umur (th)</Label>
                         <div className="flex items-center gap-2">
-                          <Input 
-                            type="number" 
-                            placeholder="Min" 
-                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
-                            value={athleteAgeMin} 
-                            onChange={e => setAthleteAgeMin(e.target.value)} 
-                          />
-                          <span className="text-muted-foreground/50 font-medium">-</span>
-                          <Input 
-                            type="number" 
-                            placeholder="Max" 
-                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
-                            value={athleteAgeMax} 
-                            onChange={e => setAthleteAgeMax(e.target.value)} 
-                          />
+                          <Input type="number" placeholder="Min" className="h-10 bg-background/50 border-foreground/10" value={athleteAgeMin} onChange={e => setAthleteAgeMin(e.target.value)} />
+                          <span className="text-muted-foreground">-</span>
+                          <Input type="number" placeholder="Max" className="h-10 bg-background/50 border-foreground/10" value={athleteAgeMax} onChange={e => setAthleteAgeMax(e.target.value)} />
                         </div>
                       </div>
-
-                      {/* WEIGHT RANGE */}
-                      <div className="space-y-2">
-                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Berat Badan (kg)</Label>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Range Berat (kg)</Label>
                         <div className="flex items-center gap-2">
-                          <Input 
-                            type="number" 
-                            placeholder="Min" 
-                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
-                            value={athleteWeightMin} 
-                            onChange={e => setAthleteWeightMin(e.target.value)} 
-                          />
-                          <span className="text-muted-foreground/50 font-medium">-</span>
-                          <Input 
-                            type="number" 
-                            placeholder="Max" 
-                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
-                            value={athleteWeightMax} 
-                            onChange={e => setAthleteWeightMax(e.target.value)} 
-                          />
+                          <Input type="number" placeholder="Min" className="h-10 bg-background/50 border-foreground/10" value={athleteWeightMin} onChange={e => setAthleteWeightMin(e.target.value)} />
+                          <span className="text-muted-foreground">-</span>
+                          <Input type="number" placeholder="Max" className="h-10 bg-background/50 border-foreground/10" value={athleteWeightMax} onChange={e => setAthleteWeightMax(e.target.value)} />
                         </div>
                       </div>
-
-                      {/* HEIGHT RANGE */}
-                      <div className="space-y-2">
-                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Tinggi Badan (cm)</Label>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Range Tinggi (cm)</Label>
                         <div className="flex items-center gap-2">
-                          <Input 
-                            type="number" 
-                            placeholder="Min" 
-                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
-                            value={athleteHeightMin} 
-                            onChange={e => setAthleteHeightMin(e.target.value)} 
-                          />
-                          <span className="text-muted-foreground/50 font-medium">-</span>
-                          <Input 
-                            type="number" 
-                            placeholder="Max" 
-                            className="h-10 bg-background/50 border-foreground/10 rounded-lg text-sm" 
-                            value={athleteHeightMax} 
-                            onChange={e => setAthleteHeightMax(e.target.value)} 
-                          />
+                          <Input type="number" placeholder="Min" className="h-10 bg-background/50 border-foreground/10" value={athleteHeightMin} onChange={e => setAthleteHeightMin(e.target.value)} />
+                          <span className="text-muted-foreground">-</span>
+                          <Input type="number" placeholder="Max" className="h-10 bg-background/50 border-foreground/10" value={athleteHeightMax} onChange={e => setAthleteHeightMax(e.target.value)} />
                         </div>
                       </div>
-
-                      {/* ACTION BUTTONS */}
-                      <div className="flex items-end gap-2">
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Klub / Instansi</Label>
+                        <Select value={athleteClubFilter} onValueChange={setAthleteClubFilter}>
+                          <SelectTrigger className="bg-background/50 border-foreground/10 h-10">
+                            <SelectValue placeholder="Semua Klub" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Semua Klub</SelectItem>
+                            {uniqueClubs.map(club => (
+                              <SelectItem key={club} value={club}>{club}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end gap-2 md:col-span-2">
+                         <Button variant="ghost" size="sm" className="flex-1 text-[10px] font-bold h-10 border border-foreground/5" onClick={() => {
+                          setAthleteSearch(""); setAthleteGenderFilter("all"); setAthleteBeltFilter("all");
+                          setAthleteClubFilter("all"); setAthleteAgeMin(""); setAthleteAgeMax("");
+                          setAthleteWeightMin(""); setAthleteWeightMax("");
+                          setAthleteHeightMin(""); setAthleteHeightMax("");
+                        }}>
+                          RESET FILTER
+                        </Button>
                         <Button 
                           variant="outline" 
                           className="flex-1 h-10 rounded-lg border-blue-500/20 text-blue-600 hover:bg-blue-500/5 font-bold text-xs"
                           onClick={() => downloadWithAuth(`/matches/weight_classes/export-all-pdf/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}`, `bracket-${selectedCategory}.pdf`)}
                         >
                           <FileText className="mr-2 h-4 w-4" />
-                          EXPORT PDF
+                          EXPORT BAGAN
                         </Button>
                       </div>
                     </div>
@@ -1894,150 +1751,86 @@ export default function MatchesPage() {
               </div>
 
               {/* ATHLETE LIST TABLE */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-wide">Data Atlet</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{filteredAthleteList.length} atlet ditampilkan</p>
-                  </div>
-                </div>
-
-                <Card className="overflow-hidden border-foreground/10 bg-gradient-to-br from-foreground/[0.02] to-background/50 backdrop-blur-sm">
-                  <Table>
-                    <TableHeader className="bg-gradient-to-r from-foreground/[0.04] to-foreground/[0.02] border-b border-foreground/5">
-                      <TableRow className="border-foreground/5 hover:bg-transparent">
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Nama Atlet</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Gender & Sabuk</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Info Fisik</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Kategori & Kelas</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Klub / Kontingen</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground text-right">Aksi</TableHead>
+              <Card className="overflow-hidden border-foreground/10 bg-background/70">
+                <Table>
+                  <TableHeader className="bg-foreground/[0.02]">
+                    <TableRow>
+                      <TableHead className="font-bold">Nama Atlet</TableHead>
+                      <TableHead className="font-bold">Info Fisik</TableHead>
+                      <TableHead className="font-bold">Kategori & Kelas</TableHead>
+                      <TableHead className="font-bold">Klub / Kontingen</TableHead>
+                      <TableHead className="font-bold text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAthleteList.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                          Tidak ada atlet yang cocok dengan filter.
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAthleteList.length === 0 ? (
-                        <TableRow className="hover:bg-transparent border-foreground/5">
-                          <TableCell colSpan={6} className="h-40 text-center">
-                            <div className="flex flex-col items-center justify-center gap-3">
-                              <Users className="h-8 w-8 text-muted-foreground/30" />
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Tidak ada atlet yang cocok</p>
-                                <p className="text-xs text-muted-foreground/60 mt-1">Coba ubah filter atau cari dengan kriteria berbeda</p>
+                    ) : (
+                      filteredAthleteList.map((athlete) => (
+                        <TableRow key={athlete.id} className="hover:bg-foreground/[0.01] transition-colors">
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-base">{athlete.nama}</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant={athlete.gender === 0 ? "default" : "secondary"} className="text-[9px] h-4 px-1.5 uppercase font-black">
+                                  {athlete.gender === 0 ? "Putra" : "Putri"}
+                                </Badge>
+                                <span className="text-[10px] font-bold text-primary uppercase">{sabukText(athlete).split(' - ')[1]}</span>
                               </div>
                             </div>
                           </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1 text-[11px]">
+                              <div className="flex justify-between w-24">
+                                <span className="text-muted-foreground">Usia:</span>
+                                <span className="font-mono font-bold">{athlete.umur} th</span>
+                              </div>
+                              <div className="flex justify-between w-24">
+                                <span className="text-muted-foreground">Berat:</span>
+                                <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
+                              </div>
+                              <div className="flex justify-between w-24">
+                                <span className="text-muted-foreground">Tinggi:</span>
+                                <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="outline" className="w-fit text-[10px] border-foreground/10 bg-foreground/[0.03]">
+                                {athlete.category === 0 ? "Kyourugi" : "Poomsae"}
+                              </Badge>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                {athlete.class_level === '1' ? 'PRESTASI' : 'PEMULA'}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-sm text-blue-600 uppercase">{athlete.klub || "UMUM"}</span>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{athlete.kontingen || "-"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-blue-500/10 hover:text-blue-500" onClick={() => openAthleteDialog(athlete)}>
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteAthlete(athlete.id!)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
-                      ) : (
-                        filteredAthleteList.map((athlete, idx) => (
-                          <TableRow 
-                            key={athlete.id} 
-                            className="border-foreground/5 hover:bg-foreground/[0.03] transition-colors duration-200"
-                          >
-                            {/* NAMA ATLET */}
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-bold text-sm">{athlete.nama}</span>
-                                <span className="text-[9px] text-muted-foreground/60 mt-0.5">ID: {athlete.id}</span>
-                              </div>
-                            </TableCell>
-
-                            {/* GENDER & SABUK */}
-                            <TableCell>
-                              <div className="flex flex-col gap-1.5">
-                                <div className="flex items-center gap-2">
-                                  <Badge 
-                                    variant={athlete.gender === 0 ? "default" : "secondary"} 
-                                    className="text-[8px] h-5 px-2 uppercase font-bold"
-                                  >
-                                    {athlete.gender === 0 ? "Putra" : "Putri"}
-                                  </Badge>
-                                </div>
-                                <span className="text-[9px] font-bold text-foreground/70 uppercase tracking-tight">
-                                  {sabukText(athlete).split(' - ')[1]}
-                                </span>
-                              </div>
-                            </TableCell>
-
-                            {/* INFO FISIK */}
-                            <TableCell>
-                              <div className="flex flex-col gap-1 text-[10px]">
-                                <div className="flex items-center gap-4">
-                                  <span className="text-muted-foreground">Usia:</span>
-                                  <span className="font-mono font-bold">{athlete.umur}</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-muted-foreground">Berat:</span>
-                                  <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-muted-foreground">Tinggi:</span>
-                                  <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
-                                </div>
-                              </div>
-                            </TableCell>
-
-                            {/* KATEGORI & KELAS */}
-                            <TableCell>
-                              <div className="flex flex-col gap-2">
-                                <Badge 
-                                  variant="outline" 
-                                  className="w-fit text-[9px] border-purple-500/20 bg-purple-500/5 text-purple-600 font-bold"
-                                >
-                                  {athlete.category === 0 ? "Kyourugi" : athlete.category === 1 ? "Poomsae" : "—"}
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`w-fit text-[9px] font-bold ${
-                                    athlete.class_level === '1' 
-                                      ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-600' 
-                                      : 'border-cyan-500/20 bg-cyan-500/5 text-cyan-600'
-                                  }`}
-                                >
-                                  {athlete.class_level === '1' ? 'Prestasi' : 'Pemula'}
-                                </Badge>
-                              </div>
-                            </TableCell>
-
-                            {/* KLUB / KONTINGEN */}
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-bold text-xs text-blue-600 uppercase">{athlete.klub || "—"}</span>
-                                <span className="text-[9px] text-muted-foreground/60 truncate max-w-xs mt-0.5">
-                                  {athlete.kontingen || "Tanpa kontingen"}
-                                </span>
-                              </div>
-                            </TableCell>
-
-                            {/* AKSI */}
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1.5">
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-8 w-8 rounded-lg hover:bg-blue-500/10 hover:text-blue-500 transition-colors" 
-                                  title="Edit atlet"
-                                  onClick={() => openAthleteDialog(athlete)}
-                                >
-                                  <Edit3 className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  size="icon" 
-                                  variant="ghost" 
-                                  className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors" 
-                                  title="Hapus atlet"
-                                  onClick={() => deleteAthlete(athlete.id!)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </Card>
-              </div>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
             </div>
           </TabsContent>
 
