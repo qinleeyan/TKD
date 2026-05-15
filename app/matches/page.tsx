@@ -1267,12 +1267,12 @@ export default function MatchesPage() {
         {/* PROFESSIONAL ADMIN DASHBOARD SUMMARY */}
         <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
           {/* Total Athletes */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
+          <Card className="shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
-                  <h3 className="mt-2 text-3xl font-display font-bold text-foreground">{stats.total}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
+                  <h3 className="mt-2 text-3xl font-bold text-foreground">{stats.total}</h3>
                 </div>
                 <Users className="h-8 w-8 text-primary/20" />
               </div>
@@ -1280,27 +1280,27 @@ export default function MatchesPage() {
           </Card>
 
           {/* Gender Breakdown */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
+          <Card className="shadow-sm">
             <CardContent className="p-4">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Gender</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Gender</p>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-display font-bold">
-                  <span className="text-blue-500">{stats.male}</span>
-                  <span className="text-muted-foreground/40 text-xl mx-1">/</span>
-                  <span className="text-pink-500">{stats.female}</span>
+                <span className="text-2xl font-bold">
+                  <span className="text-blue-600">{stats.male}</span>
+                  <span className="text-muted-foreground/30 text-xl mx-1">/</span>
+                  <span className="text-pink-600">{stats.female}</span>
                 </span>
               </div>
-              <p className="text-[8px] text-muted-foreground mt-1">Putra / Putri</p>
+              <p className="text-[9px] text-muted-foreground mt-1">Putra / Putri</p>
             </CardContent>
           </Card>
 
           {/* Kyorugi Category */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
+          <Card className="shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kyourugi</p>
-                  <h3 className="mt-2 text-3xl font-display font-bold text-amber-600">{stats.kyorugi}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Kyourugi</p>
+                  <h3 className="mt-2 text-3xl font-bold text-amber-600">{stats.kyorugi}</h3>
                 </div>
                 <Swords className="h-8 w-8 text-amber-600/20" />
               </div>
@@ -1308,12 +1308,12 @@ export default function MatchesPage() {
           </Card>
 
           {/* Poomsae Category */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
+          <Card className="shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Poomsae</p>
-                  <h3 className="mt-2 text-3xl font-display font-bold text-purple-600">{stats.poomsae}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Poomsae</p>
+                  <h3 className="mt-2 text-3xl font-bold text-purple-600">{stats.poomsae}</h3>
                 </div>
                 <Trophy className="h-8 w-8 text-purple-600/20" />
               </div>
@@ -1321,12 +1321,12 @@ export default function MatchesPage() {
           </Card>
 
           {/* Prestasi Class */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
+          <Card className="shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Prestasi</p>
-                  <h3 className="mt-2 text-3xl font-display font-bold text-emerald-600">{stats.prestasi}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Prestasi</p>
+                  <h3 className="mt-2 text-3xl font-bold text-emerald-600">{stats.prestasi}</h3>
                 </div>
                 <Activity className="h-8 w-8 text-emerald-600/20" />
               </div>
@@ -1334,12 +1334,12 @@ export default function MatchesPage() {
           </Card>
 
           {/* Pemula Class */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all">
+          <Card className="shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Pemula</p>
-                  <h3 className="mt-2 text-3xl font-display font-bold text-cyan-600">{stats.pemula}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Pemula</p>
+                  <h3 className="mt-2 text-3xl font-bold text-cyan-600">{stats.pemula}</h3>
                 </div>
                 <UserCheck className="h-8 w-8 text-cyan-600/20" />
               </div>
@@ -1347,12 +1347,12 @@ export default function MatchesPage() {
           </Card>
 
           {/* Groups Count */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all sm:col-span-2 lg:col-span-1">
+          <Card className="shadow-sm sm:col-span-2 lg:col-span-1">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kelompok</p>
-                  <h3 className="mt-2 text-3xl font-display font-bold text-orange-600">{stats.groupsCount}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Kelompok</p>
+                  <h3 className="mt-2 text-3xl font-bold text-orange-600">{stats.groupsCount}</h3>
                 </div>
                 <Swords className="h-8 w-8 text-orange-600/20" />
               </div>
@@ -1360,12 +1360,12 @@ export default function MatchesPage() {
           </Card>
 
           {/* Check-in Count */}
-          <Card className="border-foreground/5 bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-md hover:bg-background/50 transition-all lg:hidden xl:block">
+          <Card className="shadow-sm lg:hidden xl:block">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Hadir</p>
-                  <h3 className="mt-2 text-3xl font-display font-bold text-emerald-500">{athletes.filter(a => a.is_checked_in).length}</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Hadir</p>
+                  <h3 className="mt-2 text-3xl font-bold text-emerald-500">{athletes.filter(a => a.is_checked_in).length}</h3>
                 </div>
                 <CheckCircle2 className="h-8 w-8 text-emerald-500/20" />
               </div>
@@ -1375,7 +1375,7 @@ export default function MatchesPage() {
 
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="mb-2 text-4xl font-display tracking-tight">Athlete Dashboard</h1>
+            <h1 className="mb-2 text-4xl font-bold tracking-tight">Athlete Dashboard</h1>
             <p className="text-sm text-muted-foreground">Monitoring statistik, kelola data atlet, dan atur bagan pertandingan.</p>
           </div>
 
@@ -1696,40 +1696,40 @@ export default function MatchesPage() {
           <TabsContent value="athletes" className="space-y-6">
             {/* ATHLETE DASHBOARD STATS */}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <Card className="border-foreground/10 bg-background/60">
+              <Card className="shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
-                  <p className="mt-2 text-2xl font-display font-bold">{filteredAthleteList.length}</p>
-                  <p className="text-[8px] text-muted-foreground mt-1">dari {athletes.length} total</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Atlet</p>
+                  <p className="mt-2 text-2xl font-bold">{filteredAthleteList.length}</p>
+                  <p className="text-[9px] text-muted-foreground mt-1">dari {athletes.length} total</p>
                 </CardContent>
               </Card>
-              <Card className="border-foreground/10 bg-background/60">
+              <Card className="shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Gender</p>
-                  <p className="mt-2 text-xl font-display font-bold">
-                    <span className="text-blue-500">{filteredAthleteList.filter(a => a.gender === 0).length}</span>
-                    <span className="text-muted-foreground/20 text-sm mx-1">/</span>
-                    <span className="text-pink-500">{filteredAthleteList.filter(a => a.gender === 1).length}</span>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Gender</p>
+                  <p className="mt-2 text-xl font-bold">
+                    <span className="text-blue-600">{filteredAthleteList.filter(a => a.gender === 0).length}</span>
+                    <span className="text-muted-foreground/30 text-sm mx-1">/</span>
+                    <span className="text-pink-600">{filteredAthleteList.filter(a => a.gender === 1).length}</span>
                   </p>
-                  <p className="text-[8px] text-muted-foreground mt-1">Putra / Putri</p>
+                  <p className="text-[9px] text-muted-foreground mt-1">Putra / Putri</p>
                 </CardContent>
               </Card>
-              <Card className="border-foreground/10 bg-background/60">
+              <Card className="shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Kelas</p>
-                  <p className="mt-2 text-xl font-display font-bold">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Kelas</p>
+                  <p className="mt-2 text-xl font-bold">
                     <span className="text-emerald-600">{filteredAthleteList.filter(a => a.class_level === '1').length}</span>
-                    <span className="text-muted-foreground/20 text-sm mx-1">/</span>
+                    <span className="text-muted-foreground/30 text-sm mx-1">/</span>
                     <span className="text-cyan-600">{filteredAthleteList.filter(a => a.class_level === '0').length}</span>
                   </p>
-                  <p className="text-[8px] text-muted-foreground mt-1">Prestasi / Pemula</p>
+                  <p className="text-[9px] text-muted-foreground mt-1">Prestasi / Pemula</p>
                 </CardContent>
               </Card>
-              <Card className="border-foreground/10 bg-background/60">
+              <Card className="shadow-sm">
                 <CardContent className="p-4">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Klub Unik</p>
-                  <p className="mt-2 text-2xl font-display font-bold">{uniqueClubs.length}</p>
-                  <p className="text-[8px] text-muted-foreground mt-1">Kontingen</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Klub Unik</p>
+                  <p className="mt-2 text-2xl font-bold">{uniqueClubs.length}</p>
+                  <p className="text-[9px] text-muted-foreground mt-1">Kontingen</p>
                 </CardContent>
               </Card>
             </div>
@@ -1958,15 +1958,15 @@ export default function MatchesPage() {
                           </div>
                         </TableCell>
                         <TableCell className="py-4">
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-1.5">
                             <Badge 
-                              variant="outline" 
-                              className="w-fit text-[9px] border-foreground/10 bg-foreground/[0.03] font-bold uppercase"
+                              variant={athlete.class_level === '1' ? "default" : "secondary"} 
+                              className="w-fit text-[10px] font-bold uppercase"
                             >
-                              Kategori TBD
-                            </Badge>
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                               {athlete.class_level === '1' ? 'PRESTASI' : 'PEMULA'}
+                            </Badge>
+                            <span className="text-[10px] font-medium text-muted-foreground">
+                              Belum dikelompokkan
                             </span>
                           </div>
                         </TableCell>
