@@ -22,6 +22,7 @@ export function GlobalSidebar() {
     return null;
   }
 
+  return (
     <>
       {/* Floating Toggle Button when collapsed */}
       <div 
