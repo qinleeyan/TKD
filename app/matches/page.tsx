@@ -1458,15 +1458,15 @@ export default function MatchesPage() {
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="grid gap-3 sm:grid-cols-2">
+                        <CardContent className="grid gap-2 grid-cols-1 p-3">
                           {group.athletes.map((athlete) => (
                             <div
                               key={athleteKey(athlete)}
                               draggable
                               onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
-                              className="rounded-lg border border-foreground/10 bg-foreground/[0.03] p-3"
+                              className="rounded-lg border border-foreground/10 bg-foreground/[0.02] p-2 hover:bg-foreground/[0.05] transition-colors"
                             >
-                              <div className="mb-3 flex items-start justify-between gap-2">
+                              <div className="mb-2 flex items-start justify-between gap-2">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
                                     <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -1485,14 +1485,14 @@ export default function MatchesPage() {
                                   <X className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground border-t border-foreground/5 pt-2">
+                              <div className="mb-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px] text-muted-foreground border-t border-foreground/5 pt-1.5">
                                 <div className="flex justify-between"><span>Usia:</span> <span className="font-medium text-foreground">{athlete.umur} th</span></div>
                                 <div className="flex justify-between"><span>Tinggi:</span> <span className="font-medium text-foreground">{athlete.tinggi_cm} cm</span></div>
                                 <div className="flex justify-between"><span>Berat:</span> <span className="font-medium text-foreground">{athlete.berat_kg} kg</span></div>
                                 <div className="flex justify-between"><span>Gender:</span> <span className="font-medium text-foreground">{genderLabel(athlete.gender)}</span></div>
                                 <div className="col-span-2 flex justify-between mt-1 pt-1 border-t border-foreground/5">
                                   <span>Sabuk:</span>
-                                  <span className="font-bold text-foreground uppercase">{sabukText(athlete)}</span>
+                                  <span className="font-bold text-foreground uppercase tracking-tight">{sabukText(athlete)}</span>
                                 </div>
                               </div>
                               <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>

@@ -42,7 +42,7 @@ export function GlobalSidebar() {
         <Button
           variant="secondary"
           size="icon"
-          className="h-12 w-10 rounded-l-none rounded-r-xl border-y border-r border-foreground/10 bg-secondary/80 backdrop-blur-md shadow-2xl relative"
+          className="h-12 w-10 rounded-l-none rounded-r-xl border-y border-r border-foreground/10 bg-secondary/80 backdrop-blur-md shadow-2xl relative group overflow-visible"
           onClick={() => {
             setIsCollapsed(false);
             setHasUnread(false);
@@ -50,9 +50,9 @@ export function GlobalSidebar() {
         >
           <MessageCircle className="h-5 w-5" />
           {hasUnread && (
-            <span className="absolute top-2 right-2 flex h-3 w-3">
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 z-[10001]">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-background"></span>
             </span>
           )}
         </Button>
@@ -116,7 +116,7 @@ export function GlobalSidebar() {
               <StatsView />
             </div>
           ) : (
-            <ChatView isCollapsed={isCollapsed} setHasUnread={setHasUnread} />
+            <ChatView isCollapsed={isCollapsed} setHasUnread={setHasUnread} setActiveTab={setActiveTab} />
           )}
         </div>
       </div>
@@ -209,7 +209,7 @@ interface ChatMessage {
   created_at: string;
 }
 
-function ChatView({ isCollapsed, setHasUnread }: { isCollapsed: boolean, setHasUnread: (val: boolean) => void }) {
+function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: boolean, setHasUnread: (val: boolean) => void, setActiveTab: (tab: "stats" | "chat") => void }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,7 +290,42 @@ function ChatView({ isCollapsed, setHasUnread }: { isCollapsed: boolean, setHasU
           if (isCollapsed || data.message.username !== user?.username) {
             if (data.message.username !== user?.username) {
               setHasUnread(true);
-              audioRef.current?.play().catch(() => {}); // Ignore interaction errors
+              audioRef.current?.play().catch(() => {});
+              
+              // Custom styled toast for chat (Blue theme)
+              import('react-hot-toast').then(({ toast }) => {
+                toast.custom((t) => (
+                  <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-blue-600 shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+                    <div className="flex-1 w-0 p-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 pt-0.5">
+                          <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-white">
+                            <MessageSquare className="h-6 w-6" />
+                          </div>
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <p className="text-sm font-bold text-white">Pesan Baru</p>
+                          <p className="mt-1 text-sm text-blue-50 font-medium">
+                            <span className="font-bold">{data.message.sender_name}:</span> {data.message.content}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex border-l border-white/10">
+                      <button
+                        onClick={() => {
+                          toast.dismiss(t.id);
+                          setIsCollapsed(false);
+                          setActiveTab("chat");
+                        }}
+                        className="w-full border border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-bold text-white hover:bg-white/10 focus:outline-none"
+                      >
+                        Buka
+                      </button>
+                    </div>
+                  </div>
+                ), { id: 'chat-notif', duration: 5000 });
+              });
             }
           }
           
