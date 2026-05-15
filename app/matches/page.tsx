@@ -211,25 +211,25 @@ function normalizeGroup(raw: any, index: number): GroupCard {
   const assignments = Array.isArray(raw.assignments) ? raw.assignments : [];
   const athletes = assignments.length
     ? assignments.map((assignment: any) => ({
-        ...(assignment.athlete_detail || {}),
-        sabuk: normalizeSabukCode(assignment.athlete_detail?.sabuk),
-        sabuk_display: assignment.athlete_detail?.sabuk_display || sabukLabels[normalizeSabukCode(assignment.athlete_detail?.sabuk)],
-        gender_display: assignment.athlete_detail?.gender_display,
-        kontingen: assignment.athlete_detail?.kontingen ?? assignment.athlete_detail?.Kontingen ?? "",
-        klub: assignment.athlete_detail?.klub ?? assignment.athlete_detail?.Klub ?? assignment.athlete_detail?.Club ?? "",
-        class_level: String(assignment.athlete_detail?.class_level ?? assignment.athlete_detail?.Kelas ?? "1"),
-        position: assignment.position,
-      }))
+      ...(assignment.athlete_detail || {}),
+      sabuk: normalizeSabukCode(assignment.athlete_detail?.sabuk),
+      sabuk_display: assignment.athlete_detail?.sabuk_display || sabukLabels[normalizeSabukCode(assignment.athlete_detail?.sabuk)],
+      gender_display: assignment.athlete_detail?.gender_display,
+      kontingen: assignment.athlete_detail?.kontingen ?? assignment.athlete_detail?.Kontingen ?? "",
+      klub: assignment.athlete_detail?.klub ?? assignment.athlete_detail?.Klub ?? assignment.athlete_detail?.Club ?? "",
+      class_level: String(assignment.athlete_detail?.class_level ?? assignment.athlete_detail?.Kelas ?? "1"),
+      position: assignment.position,
+    }))
     : (raw.athletes || []).map((a: any, athleteIndex: number) => ({
-        ...a,
-        sabuk: normalizeSabukCode(a.sabuk),
-        sabuk_display: a.sabuk_display || sabukLabels[normalizeSabukCode(a.sabuk)],
-        gender_display: a.gender_display,
-        kontingen: a.kontingen ?? a.Kontingen ?? "",
-        klub: a.klub ?? a.Klub ?? a.Club ?? "",
-        class_level: String(a.class_level ?? a.Kelas ?? "1"),
-        position: a.position ?? athleteIndex + 1,
-      }));
+      ...a,
+      sabuk: normalizeSabukCode(a.sabuk),
+      sabuk_display: a.sabuk_display || sabukLabels[normalizeSabukCode(a.sabuk)],
+      gender_display: a.gender_display,
+      kontingen: a.kontingen ?? a.Kontingen ?? "",
+      klub: a.klub ?? a.Klub ?? a.Club ?? "",
+      class_level: String(a.class_level ?? a.Kelas ?? "1"),
+      position: a.position ?? athleteIndex + 1,
+    }));
 
   return {
     id: raw.id,
@@ -310,7 +310,7 @@ export default function MatchesPage() {
   const [athleteWeightMax, setAthleteWeightMax] = useState("");
   const [athleteHeightMin, setAthleteHeightMin] = useState("");
   const [athleteHeightMax, setAthleteHeightMax] = useState("");
-  
+
   const [editingAthlete, setEditingAthlete] = useState<AthleteCard | null>(null);
   const [athleteDialogOpen, setAthleteDialogOpen] = useState(false);
 
@@ -324,7 +324,7 @@ export default function MatchesPage() {
     const prestasi = athletes.filter(a => a.class_level === '1').length;
     const pemula = athletes.filter(a => a.class_level === '0').length;
     const groupsCount = groups.length;
-    
+
     return { total, male, female, kyorugi, poomsae, prestasi, pemula, groupsCount };
   }, [athletes, groups, selectedCategory]);
 
@@ -335,14 +335,14 @@ export default function MatchesPage() {
 
   const filteredAthleteList = useMemo(() => {
     return athletes.filter(a => {
-      const matchesSearch = !athleteSearch || 
+      const matchesSearch = !athleteSearch ||
         a.nama.toLowerCase().includes(athleteSearch.toLowerCase()) ||
         (a.klub || "").toLowerCase().includes(athleteSearch.toLowerCase());
-      
+
       const matchesGender = athleteGenderFilter === "all" || String(a.gender) === athleteGenderFilter;
       const matchesBelt = athleteBeltFilter === "all" || String(a.sabuk) === athleteBeltFilter;
       const matchesClub = athleteClubFilter === "all" || a.klub === athleteClubFilter;
-      
+
       const ageMin = athleteAgeMin ? parseInt(athleteAgeMin) : 0;
       const ageMax = athleteAgeMax ? parseInt(athleteAgeMax) : 100;
       const matchesAge = a.umur >= ageMin && a.umur <= ageMax;
@@ -354,7 +354,7 @@ export default function MatchesPage() {
       const heightMin = athleteHeightMin ? parseFloat(athleteHeightMin) : 0;
       const heightMax = athleteHeightMax ? parseFloat(athleteHeightMax) : 300;
       const matchesHeight = a.tinggi_cm >= heightMin && a.tinggi_cm <= heightMax;
-      
+
       return matchesSearch && matchesGender && matchesBelt && matchesClub && matchesAge && matchesWeight && matchesHeight;
     });
   }, [athletes, athleteSearch, athleteGenderFilter, athleteBeltFilter, athleteClubFilter, athleteAgeMin, athleteAgeMax, athleteWeightMin, athleteWeightMax, athleteHeightMin, athleteHeightMax]);
@@ -375,7 +375,7 @@ export default function MatchesPage() {
   const [poolSearch, setPoolSearch] = useState("");
   const [activePoolTab, setActivePoolTab] = useState<"available" | "selected">("available");
   const [arenas, setArenas] = useState<any[]>([]);
-  
+
   const [mainSearch, setMainSearch] = useState("");
   const [mainGenderFilter, setMainGenderFilter] = useState("all");
   const [matchSearch, setMatchSearch] = useState("");
@@ -423,7 +423,7 @@ export default function MatchesPage() {
       let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&page=${groupPage}&sort_by=${sortBy}`;
       if (mainSearch) url += `&search=${encodeURIComponent(mainSearch)}`;
       if (mainGenderFilter !== "all") url += `&gender=${mainGenderFilter}`;
-      
+
       const res = await fetchWithAuth(url);
       if (res.ok) {
         const data = await res.json();
@@ -484,7 +484,7 @@ export default function MatchesPage() {
         setAthletes(results);
       }
     } catch (e) {
-        console.error("Gagal memuat atlet:", e);
+      console.error("Gagal memuat atlet:", e);
     }
   }, []);
 
@@ -523,13 +523,13 @@ export default function MatchesPage() {
         setTimeout(() => setProgressMessage(""), 3000);
       }
     }
-    
+
     if (event === "processing_error") {
       toast.error(data?.message || "Gagal memproses data.");
       setProgressMessage("");
       setUploading(false);
     }
-    
+
     // Direct Data Updates (Zero Latency - No API Fetch)
     if (event === "groups_confirmed" && data?.groups) {
       setGroups(data.groups.map((item: any, index: number) => normalizeGroup(item, index)));
@@ -550,12 +550,12 @@ export default function MatchesPage() {
         }
         return results;
       });
-      
+
       // Update groups locally if match affects group status
       if (data.status === "finished") {
         setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => {
           if (g.group_name === data.group_name) {
-            return { ...g, status: "updated" }; 
+            return { ...g, status: "updated" };
           }
           return g;
         }));
@@ -596,7 +596,7 @@ export default function MatchesPage() {
       loadGroups(true);
       return;
     }
-    
+
     if (event === "group_updated" && data?.id) {
       setGroups(prev => prev.map(g => g.id === data.id ? normalizeGroup(data, 0) : g));
       return;
@@ -627,17 +627,17 @@ export default function MatchesPage() {
       // 2. Update Matches list
       setMatches(prev => (Array.isArray(prev) ? prev : []).map(m => ({
         ...m,
-        participants: (m.participants || []).map(p => 
+        participants: (m.participants || []).map(p =>
           p.athlete === athleteId || p.athlete_detail?.id === athleteId
-          ? { ...p, athlete_detail: p.athlete_detail ? { ...p.athlete_detail, is_checked_in: isHadir } : p.athlete_detail }
-          : p
+            ? { ...p, athlete_detail: p.athlete_detail ? { ...p.athlete_detail, is_checked_in: isHadir } : p.athlete_detail }
+            : p
         )
       })));
 
       // 3. Update Groups list (Updating 'athletes' key which is used by GroupCard)
       setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => ({
         ...g,
-        athletes: (g.athletes || []).map(a => 
+        athletes: (g.athletes || []).map(a =>
           a.id === athleteId ? { ...a, is_checked_in: isHadir } : a
         )
       })));
@@ -752,12 +752,12 @@ export default function MatchesPage() {
     }
 
     const selectedAthletesData = poomsaePool.filter(a => selectedPoolAthletes.includes(athleteKey(a)));
-    
+
     // Auto-name based on belt and age if they match, else generic
     const first = selectedAthletesData[0];
     const allSameSabuk = selectedAthletesData.every(a => a.sabuk === first.sabuk);
     const allSameAge = selectedAthletesData.every(a => a.umur === first.umur);
-    
+
     let groupName = `Kelompok ${groups.length + 1}`;
     if (allSameSabuk && allSameAge) {
       groupName = `Poomsae Sabuk ${first.sabuk} ${first.umur}th - ${groups.length + 1}`;
@@ -775,7 +775,7 @@ export default function MatchesPage() {
     };
 
     setGroups([...groups, newGroup]);
-    
+
     // Remove from pool
     setPoomsaePool(poomsaePool.filter(a => !selectedPoolAthletes.includes(athleteKey(a))));
     setSelectedPoolAthletes([]);
@@ -783,7 +783,7 @@ export default function MatchesPage() {
   };
 
   const togglePoolAthlete = (id: string) => {
-    setSelectedPoolAthletes(prev => 
+    setSelectedPoolAthletes(prev =>
       prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
     );
   };
@@ -820,7 +820,7 @@ export default function MatchesPage() {
       setGroups([]); // Clear old groups
       setPreviewDialogOpen(true); // Open dialog immediately to show progress
       setUploadDialogOpen(false);
-      
+
       setProgressMessage("Mengunggah file...");
       const res = await fetchWithAuth("/matchmaking/preview-upload/", {
         method: "POST",
@@ -835,7 +835,7 @@ export default function MatchesPage() {
       }
       const normalized = (data.groups || []).map((item: any, index: number) => normalizeGroup(item, index));
       setGroups(normalized);
-      
+
       // If poomsae, also prepare the pool (all athletes)
       if (selectedCategory === "poomsae") {
         const allAthletes = normalized.flatMap((g: any) => g.athletes);
@@ -1035,8 +1035,8 @@ export default function MatchesPage() {
   };
 
   const toggleSelectMatch = (matchId: number) => {
-    setSelectedMatchIds(prev => 
-      prev.includes(matchId) 
+    setSelectedMatchIds(prev =>
+      prev.includes(matchId)
         ? prev.filter(id => id !== matchId)
         : [...prev, matchId]
     );
@@ -1053,8 +1053,8 @@ export default function MatchesPage() {
   };
 
   const toggleSelectGroup = (groupId: string) => {
-    setSelectedGroupIds(prev => 
-      prev.includes(groupId) 
+    setSelectedGroupIds(prev =>
+      prev.includes(groupId)
         ? prev.filter(id => id !== groupId)
         : [...prev, groupId]
     );
@@ -1079,25 +1079,25 @@ export default function MatchesPage() {
       const idsToDelete = groups
         .filter((g, idx) => selectedGroupIds.includes(groupKey(g, idx)) && g.id)
         .map(g => g.id);
-      
+
       if (idsToDelete.length > 0) {
         const res = await fetchWithAuth(`/matches/weight_classes/bulk-delete/?tournament=${TOURNAMENT_ID}`, {
           method: "DELETE",
           body: JSON.stringify({ ids: idsToDelete })
         });
-        
+
         if (!res.ok) {
-           const errorData = await res.json().catch(() => ({}));
-           toast.error(errorData.error || "Gagal menghapus beberapa kelompok dari server.");
-           setIsDeletingGroups(false);
-           return;
+          const errorData = await res.json().catch(() => ({}));
+          toast.error(errorData.error || "Gagal menghapus beberapa kelompok dari server.");
+          setIsDeletingGroups(false);
+          return;
         }
       }
 
       setGroups(prev => prev.filter((g, idx) => !selectedGroupIds.includes(groupKey(g, idx))));
       setSelectedGroupIds([]);
       toast.success(`${selectedGroupIds.length} kelompok berhasil dihapus`);
-      
+
       await loadAll();
     } catch (error) {
       console.error("Failed to bulk delete groups:", error);
@@ -1151,7 +1151,7 @@ export default function MatchesPage() {
 
   const deleteAthlete = async (athleteId: number | string) => {
     if (!window.confirm("Hapus atlet ini secara permanen dari database?")) return;
-    
+
     try {
       const res = await fetchWithAuth(`/athletes/${athleteId}/`, { method: "DELETE" });
       if (res.ok) {
@@ -1265,644 +1265,642 @@ export default function MatchesPage() {
       <Navigation />
 
       <div className="relative z-10 mx-auto max-w-[1600px] px-6 pb-16 pt-28 lg:px-10">
-          {/* MAIN CONTENT AREA */}
-          <div className="flex-1 min-w-0">
+        {/* MAIN CONTENT AREA */}
+        <div className="flex-1 min-w-0">
 
-        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="mb-2 text-4xl font-bold tracking-tight">Athlete Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Monitoring statistik, kelola data atlet, dan atur bagan pertandingan.</p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as Category)}>
-              <SelectTrigger className="h-10 w-[160px] rounded-lg bg-background/70 border-foreground/10 focus:ring-0 transition-all">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="kyourugi">Kyourugi</SelectItem>
-                <SelectItem value="poomsae">Poomsae</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={(value) => applySort(value as SortBy)}>
-              <SelectTrigger className="h-10 w-[180px] rounded-lg bg-background/70 focus:ring-0 transition-all border-foreground/10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="age">Urut usia</SelectItem>
-                <SelectItem value="gender">Urut gender</SelectItem>
-                <SelectItem value="weight">Urut berat</SelectItem>
-                <SelectItem value="height">Urut tinggi</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="h-10 rounded-lg" onClick={() => setCategoryDialogOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload
-            </Button>
-            <Button variant="outline" className="h-10 rounded-lg" onClick={() => openGroupDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Group
-            </Button>
-            <Button variant="outline" className="h-10 rounded-lg" onClick={() => downloadWithAuth(`/matches/weight_classes/export-all-pdf/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}`, `bracket-${selectedCategory}.pdf`)}>
-              <FileText className="mr-2 h-4 w-4" />
-              Export PDF (Bagan)
-            </Button>
-             <Button variant="outline" className="h-10 rounded-lg border-destructive/20 text-destructive hover:bg-destructive/10" onClick={handleResetTournamentData} disabled={saving}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Reset Data
-            </Button>
-            <Button className="h-10 rounded-lg bg-foreground text-background hover:bg-foreground/90" disabled={!hasUnsavedChanges || saving} onClick={handleConfirmGroups}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Simpan
-            </Button>
-          </div>
-        </div>
-
-        <Tabs defaultValue="groups" className="space-y-6">
-          <TabsList className="rounded-lg bg-background/50 border border-foreground/5 p-1">
-            <TabsTrigger value="groups" className="rounded-md px-6">Grouping & Bracket</TabsTrigger>
-            <TabsTrigger value="athletes" className="rounded-md px-6">Data Atlet</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="groups" className="relative min-h-[500px] pb-24">
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Cari atlet atau kelompok..."
-                  className="pl-9 bg-background/50 border-foreground/10 focus:border-foreground/20 transition-all rounded-lg"
-                  value={mainSearch}
-                  onChange={(e) => setMainSearch(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 rounded-lg border border-foreground/10 bg-background/50 px-3 py-2">
-                  <Checkbox 
-                    checked={filteredGroups.length > 0 && filteredGroups.every((g, idx) => selectedGroupIds.includes(groupKey(g, idx)))}
-                    onCheckedChange={toggleSelectAllGroups}
-                    id="select-all-groups"
-                  />
-                  <label htmlFor="select-all-groups" className="text-xs font-medium cursor-pointer">Pilih Semua</label>
-                </div>
-                {selectedGroupIds.length > 0 && (
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    className="h-10 rounded-lg px-4"
-                    onClick={handleBulkDeleteGroups}
-                    disabled={isDeletingGroups}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Hapus ({selectedGroupIds.length})
-                  </Button>
-                )}
-                <Select value={mainGenderFilter} onValueChange={setMainGenderFilter}>
-                  <SelectTrigger className="h-10 w-[160px] rounded-lg bg-background/50 border-foreground/10 focus:ring-0">
-                    <SelectValue placeholder="Gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Gender</SelectItem>
-                    <SelectItem value="0">Putra</SelectItem>
-                    <SelectItem value="1">Putri</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm" className="h-10 rounded-lg text-xs" onClick={() => { setMainSearch(""); setMainGenderFilter("all"); setSelectedGroupIds([]); }}>
-                  Reset
-                </Button>
-              </div>
+          <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="mb-2 text-4xl font-bold tracking-tight">Athlete Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Monitoring statistik, kelola data atlet, dan atur bagan pertandingan.</p>
             </div>
 
-            {loading ? (
-              <div className="flex min-h-64 flex-col items-center justify-center gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Memuat data kelompok...</p>
-              </div>
-            ) : groups.length === 0 ? (
-              <Card className="rounded-lg border-foreground/10 bg-background/70">
-                <CardContent className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
-                  <Users className="h-10 w-10 text-muted-foreground" />
-                  <div>
-                    <h2 className="text-xl font-semibold">Belum ada grouping</h2>
-                    <p className="text-sm text-muted-foreground">Pilih kategori pertandingan lalu upload CSV/XLSX untuk membuat preview.</p>
+            <div className="flex flex-wrap gap-2">
+              <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as Category)}>
+                <SelectTrigger className="h-10 w-[160px] rounded-lg bg-background/70 border-foreground/10 focus:ring-0 transition-all">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kyourugi">Kyourugi</SelectItem>
+                  <SelectItem value="poomsae">Poomsae</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={(value) => applySort(value as SortBy)}>
+                <SelectTrigger className="h-10 w-[180px] rounded-lg bg-background/70 focus:ring-0 transition-all border-foreground/10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="age">Urut usia</SelectItem>
+                  <SelectItem value="gender">Urut gender</SelectItem>
+                  <SelectItem value="weight">Urut berat</SelectItem>
+                  <SelectItem value="height">Urut tinggi</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="h-10 rounded-lg" onClick={() => setCategoryDialogOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload
+              </Button>
+              <Button variant="outline" className="h-10 rounded-lg" onClick={() => openGroupDialog()}>
+                <Plus className="mr-2 h-4 w-4" />
+                Group
+              </Button>
+              <Button variant="outline" className="h-10 rounded-lg" onClick={() => downloadWithAuth(`/matches/weight_classes/export-all-pdf/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}`, `bracket-${selectedCategory}.pdf`)}>
+                <FileText className="mr-2 h-4 w-4" />
+                Export PDF (Bagan)
+              </Button>
+              <Button variant="outline" className="h-10 rounded-lg border-destructive/20 text-destructive hover:bg-destructive/10" onClick={handleResetTournamentData} disabled={saving}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Reset Data
+              </Button>
+              <Button className="h-10 rounded-lg bg-foreground text-background hover:bg-foreground/90" disabled={!hasUnsavedChanges || saving} onClick={handleConfirmGroups}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Simpan
+              </Button>
+            </div>
+          </div>
+
+          <Tabs defaultValue="groups" className="space-y-6">
+            <TabsList className="rounded-lg bg-background/50 border border-foreground/5 p-1">
+              <TabsTrigger value="groups" className="rounded-md px-6">Grouping & Bracket</TabsTrigger>
+              <TabsTrigger value="athletes" className="rounded-md px-6">Data Atlet</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="groups" className="relative min-h-[500px] pb-24">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari atlet atau kelompok..."
+                    className="pl-9 bg-background/50 border-foreground/10 focus:border-foreground/20 transition-all rounded-lg"
+                    value={mainSearch}
+                    onChange={(e) => setMainSearch(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 rounded-lg border border-foreground/10 bg-background/50 px-3 py-2">
+                    <Checkbox
+                      checked={filteredGroups.length > 0 && filteredGroups.every((g, idx) => selectedGroupIds.includes(groupKey(g, idx)))}
+                      onCheckedChange={toggleSelectAllGroups}
+                      id="select-all-groups"
+                    />
+                    <label htmlFor="select-all-groups" className="text-xs font-medium cursor-pointer">Pilih Semua</label>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                {filteredGroups.map((group, index) => {
-                  const key = groupKey(group, index);
-                  return (
-                    <Card
-                      key={key}
-                      className="rounded-lg border-foreground/10 bg-background/70"
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={() => draggedAthlete && moveAthlete(draggedAthlete.fromGroup, key, draggedAthlete.athleteId)}
+                  {selectedGroupIds.length > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-10 rounded-lg px-4"
+                      onClick={handleBulkDeleteGroups}
+                      disabled={isDeletingGroups}
                     >
-                      <CardHeader className="space-y-3 pb-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3">
-                            <Checkbox 
-                              checked={selectedGroupIds.includes(key)}
-                              onCheckedChange={() => toggleSelectGroup(key)}
-                              className="mt-1.5"
-                            />
-                            <div>
-                              <CardTitle className="text-lg leading-tight">{group.group_name}</CardTitle>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <Badge variant="secondary" className="bg-foreground/5 text-foreground/70">{group.gender_display || genderLabel(group.gender)}</Badge>
-                                <Badge variant="outline" className="border-foreground/10">{group.athletes.length} atlet</Badge>
-                                <Badge variant="outline" className="border-foreground/10">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
-                                <Badge variant="outline" className="border-foreground/10">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Hapus ({selectedGroupIds.length})
+                    </Button>
+                  )}
+                  <Select value={mainGenderFilter} onValueChange={setMainGenderFilter}>
+                    <SelectTrigger className="h-10 w-[160px] rounded-lg bg-background/50 border-foreground/10 focus:ring-0">
+                      <SelectValue placeholder="Gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Gender</SelectItem>
+                      <SelectItem value="0">Putra</SelectItem>
+                      <SelectItem value="1">Putri</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" className="h-10 rounded-lg text-xs" onClick={() => { setMainSearch(""); setMainGenderFilter("all"); setSelectedGroupIds([]); }}>
+                    Reset
+                  </Button>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex min-h-64 flex-col items-center justify-center gap-4">
+                  <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Memuat data kelompok...</p>
+                </div>
+              ) : groups.length === 0 ? (
+                <Card className="rounded-lg border-foreground/10 bg-background/70">
+                  <CardContent className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
+                    <Users className="h-10 w-10 text-muted-foreground" />
+                    <div>
+                      <h2 className="text-xl font-semibold">Belum ada grouping</h2>
+                      <p className="text-sm text-muted-foreground">Pilih kategori pertandingan lalu upload CSV/XLSX untuk membuat preview.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                  {filteredGroups.map((group, index) => {
+                    const key = groupKey(group, index);
+                    return (
+                      <Card
+                        key={key}
+                        className="rounded-lg border-foreground/10 bg-background/70"
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => draggedAthlete && moveAthlete(draggedAthlete.fromGroup, key, draggedAthlete.athleteId)}
+                      >
+                        <CardHeader className="space-y-3 pb-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={selectedGroupIds.includes(key)}
+                                onCheckedChange={() => toggleSelectGroup(key)}
+                                className="mt-1.5"
+                              />
+                              <div>
+                                <CardTitle className="text-lg leading-tight">{group.group_name}</CardTitle>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <Badge variant="secondary" className="bg-foreground/5 text-foreground/70">{group.gender_display || genderLabel(group.gender)}</Badge>
+                                  <Badge variant="outline" className="border-foreground/10">{group.athletes.length} atlet</Badge>
+                                  <Badge variant="outline" className="border-foreground/10">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
+                                  <Badge variant="outline" className="border-foreground/10">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Export PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Gambar" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
-                              <ImagePlus className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openGroupDialog(group)}>
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive transition-all" onClick={() => deleteGroup(group)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="grid gap-3 sm:grid-cols-2">
-                        {group.athletes.map((athlete) => (
-                          <div
-                            key={athleteKey(athlete)}
-                            draggable
-                            onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
-                            className="rounded-lg border border-foreground/10 bg-foreground/[0.03] p-3"
-                          >
-                            <div className="mb-3 flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                  <p className="truncate font-medium">{athlete.nama}</p>
-                                </div>
-                                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  <span className="inline-flex items-center rounded-md bg-foreground/5 px-1.5 py-0.5 text-[10px] font-bold text-foreground uppercase">
-                                    {athlete.klub || "UMUM"}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {athlete.kontingen || "Tanpa kontingen"}
-                                  </span>
-                                </div>
-                              </div>
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeAthlete(key, athleteKey(athlete))}>
-                                <X className="h-4 w-4" />
+                            <div className="flex gap-1">
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Export PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Export Gambar" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
+                                <ImagePlus className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openGroupDialog(group)}>
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-destructive transition-all" onClick={() => deleteGroup(group)}>
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                            <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground border-t border-foreground/5 pt-2">
-                              <div className="flex justify-between"><span>Usia:</span> <span className="font-medium text-foreground">{athlete.umur} th</span></div>
-                              <div className="flex justify-between"><span>Tinggi:</span> <span className="font-medium text-foreground">{athlete.tinggi_cm} cm</span></div>
-                              <div className="flex justify-between"><span>Berat:</span> <span className="font-medium text-foreground">{athlete.berat_kg} kg</span></div>
-                              <div className="flex justify-between"><span>Gender:</span> <span className="font-medium text-foreground">{genderLabel(athlete.gender)}</span></div>
-                              <div className="col-span-2 flex justify-between mt-1 pt-1 border-t border-foreground/5">
-                                <span>Sabuk:</span> 
-                                <span className="font-bold text-foreground uppercase">{sabukText(athlete)}</span>
-                              </div>
-                            </div>
-                            <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>
-                              <SelectTrigger className="h-8 w-full rounded-lg bg-background/70 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {groups
-                                  .map((candidate, candidateIndex) => ({ candidate, key: groupKey(candidate, candidateIndex) }))
-                                  .filter(({ candidate }) => candidate.gender === athlete.gender || candidate.athletes.length === 0)
-                                  .map(({ candidate, key: candidateKey }) => (
-                                    <SelectItem key={candidateKey} value={candidateKey}>
-                                      {candidate.group_name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
                           </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
+                        </CardHeader>
+                        <CardContent className="grid gap-3 sm:grid-cols-2">
+                          {group.athletes.map((athlete) => (
+                            <div
+                              key={athleteKey(athlete)}
+                              draggable
+                              onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
+                              className="rounded-lg border border-foreground/10 bg-foreground/[0.03] p-3"
+                            >
+                              <div className="mb-3 flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <p className="truncate font-medium">{athlete.nama}</p>
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <span className="inline-flex items-center rounded-md bg-foreground/5 px-1.5 py-0.5 text-[10px] font-bold text-foreground uppercase">
+                                      {athlete.klub || "UMUM"}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {athlete.kontingen || "Tanpa kontingen"}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => removeAthlete(key, athleteKey(athlete))}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground border-t border-foreground/5 pt-2">
+                                <div className="flex justify-between"><span>Usia:</span> <span className="font-medium text-foreground">{athlete.umur} th</span></div>
+                                <div className="flex justify-between"><span>Tinggi:</span> <span className="font-medium text-foreground">{athlete.tinggi_cm} cm</span></div>
+                                <div className="flex justify-between"><span>Berat:</span> <span className="font-medium text-foreground">{athlete.berat_kg} kg</span></div>
+                                <div className="flex justify-between"><span>Gender:</span> <span className="font-medium text-foreground">{genderLabel(athlete.gender)}</span></div>
+                                <div className="col-span-2 flex justify-between mt-1 pt-1 border-t border-foreground/5">
+                                  <span>Sabuk:</span>
+                                  <span className="font-bold text-foreground uppercase">{sabukText(athlete)}</span>
+                                </div>
+                              </div>
+                              <Select value={key} onValueChange={(targetKey) => moveAthlete(key, targetKey, athleteKey(athlete))}>
+                                <SelectTrigger className="h-8 w-full rounded-lg bg-background/70 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {groups
+                                    .map((candidate, candidateIndex) => ({ candidate, key: groupKey(candidate, candidateIndex) }))
+                                    .filter(({ candidate }) => candidate.gender === athlete.gender || candidate.athletes.length === 0)
+                                    .map(({ candidate, key: candidateKey }) => (
+                                      <SelectItem key={candidateKey} value={candidateKey}>
+                                        {candidate.group_name}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
 
-            {/* Group Pagination */}
-            {groupTotalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8 bg-background p-4 rounded-lg border border-foreground/5 mb-24">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setGroupPage(p => Math.max(1, p - 1))}
-                  disabled={groupPage === 1}
-                  className="rounded-lg"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <span className="text-sm font-mono">
-                  Page {groupPage} of {groupTotalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setGroupPage(p => Math.min(groupTotalPages, p + 1))}
-                  disabled={groupPage === groupTotalPages}
-                  className="rounded-lg"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </div>
-            )}
+              {/* Group Pagination */}
+              {groupTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8 bg-background p-4 rounded-lg border border-foreground/5 mb-24">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setGroupPage(p => Math.max(1, p - 1))}
+                    disabled={groupPage === 1}
+                    className="rounded-lg"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                  <span className="text-sm font-mono">
+                    Page {groupPage} of {groupTotalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setGroupPage(p => Math.min(groupTotalPages, p + 1))}
+                    disabled={groupPage === groupTotalPages}
+                    className="rounded-lg"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </Button>
+                </div>
+              )}
 
-            {/* Sticky Action Bar */}
-            <div className="fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-foreground/10 bg-background/90 p-2 pr-6 shadow-xl backdrop-blur-md">
-              <div className="flex items-center gap-2 pl-4 pr-4 border-r border-foreground/10">
-                <Badge variant="secondary" className="h-6 rounded-full px-2 font-mono text-[10px]">
-                  {groups.length} Groups
-                </Badge>
-                {hasUnsavedChanges && (
-                  <Badge className="h-6 rounded-full bg-amber-500/20 text-amber-500 text-[10px] border-amber-500/20">
-                    Unsaved
+              {/* Sticky Action Bar */}
+              <div className="fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-foreground/10 bg-background/90 p-2 pr-6 shadow-xl backdrop-blur-md">
+                <div className="flex items-center gap-2 pl-4 pr-4 border-r border-foreground/10">
+                  <Badge variant="secondary" className="h-6 rounded-full px-2 font-mono text-[10px]">
+                    {groups.length} Groups
                   </Badge>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {hasUnsavedChanges && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-10 rounded-xl px-4 text-xs font-medium text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      loadGroups();
-                      setHasUnsavedChanges(false);
-                      toast.info("Perubahan dibatalkan.");
-                    }}
-                  >
-                    <Undo2 className="mr-2 h-4 w-4" />
-                    Batal
-                  </Button>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-10 rounded-xl px-4 text-xs font-medium hover:bg-foreground/5"
-                  onClick={() => setCategoryDialogOpen(true)}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Re-upload
-                </Button>
-                {groups.length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-10 rounded-xl px-6 text-xs font-medium border-foreground/10 hover:bg-foreground/5"
-                    onClick={() => setPreviewDialogOpen(true)}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    Preview
-                  </Button>
-                )}
-                <Button 
-                  size="sm" 
-                  className="h-10 rounded-xl px-8 text-xs font-bold bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10"
-                  disabled={!hasUnsavedChanges || saving}
-                  onClick={handleConfirmGroups}
-                >
-                  {saving ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4" />
+                  {hasUnsavedChanges && (
+                    <Badge className="h-6 rounded-full bg-amber-500/20 text-amber-500 text-[10px] border-amber-500/20">
+                      Unsaved
+                    </Badge>
                   )}
-                  Simpan Perubahan
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="athletes" className="space-y-6">
-            {/* ATHLETE DASHBOARD STATS */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <Card className="shadow-none border-foreground/5 bg-transparent">
-                <CardContent className="p-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Total Atlet</p>
-                  <p className="mt-1 text-xl font-bold text-foreground">{filteredAthleteList.length}</p>
-                  <p className="text-[9px] text-muted-foreground">dari {athletes.length}</p>
-                </CardContent>
-              </Card>
-              <Card className="shadow-none border-foreground/5 bg-transparent">
-                <CardContent className="p-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Gender</p>
-                  <p className="mt-1 text-xl font-bold text-foreground">
-                    {filteredAthleteList.filter(a => a.gender === 0).length}
-                    <span className="text-muted-foreground/30 font-normal mx-1">/</span>
-                    {filteredAthleteList.filter(a => a.gender === 1).length}
-                  </p>
-                  <p className="text-[9px] text-muted-foreground">L / P</p>
-                </CardContent>
-              </Card>
-              <Card className="shadow-none border-foreground/5 bg-transparent">
-                <CardContent className="p-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Kelas</p>
-                  <p className="mt-1 text-xl font-bold text-foreground">
-                    {filteredAthleteList.filter(a => a.class_level === '1').length}
-                    <span className="text-muted-foreground/30 font-normal mx-1">/</span>
-                    {filteredAthleteList.filter(a => a.class_level === '0').length}
-                  </p>
-                  <p className="text-[9px] text-muted-foreground">Pr / Pe</p>
-                </CardContent>
-              </Card>
-              <Card className="shadow-none border-foreground/5 bg-transparent">
-                <CardContent className="p-2">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Klub</p>
-                  <p className="mt-1 text-xl font-bold text-foreground">{uniqueClubs.length}</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* SEARCH & FILTERS SECTION */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Filter & Pencarian</h3>
-              </div>
-
-              <Card className="border-foreground/10 bg-background/60 overflow-hidden">
-                <CardContent className="p-6 space-y-6">
-                  {/* Search Row */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Cari Atlet (Nama / Klub)</Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Ketik nama atlet atau nama klub..."
-                        className="pl-9 h-11 bg-background/50 border-foreground/10 rounded-lg focus:border-foreground/30 transition-all"
-                        value={athleteSearch}
-                        onChange={(e) => setAthleteSearch(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Primary Filters Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gender</Label>
-                      <Select value={athleteGenderFilter} onValueChange={setAthleteGenderFilter}>
-                        <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
-                          <SelectValue placeholder="Semua Gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Gender</SelectItem>
-                          <SelectItem value="0">Putra</SelectItem>
-                          <SelectItem value="1">Putri</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sabuk (Belt)</Label>
-                      <Select value={athleteBeltFilter} onValueChange={setAthleteBeltFilter}>
-                        <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
-                          <SelectValue placeholder="Semua Sabuk" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Sabuk</SelectItem>
-                          {Object.entries(sabukLabels).map(([val, label]) => (
-                            <SelectItem key={val} value={val}>{label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Klub / Instansi</Label>
-                      <Select value={athleteClubFilter} onValueChange={setAthleteClubFilter}>
-                        <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
-                          <SelectValue placeholder="Semua Klub" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Semua Klub</SelectItem>
-                          {uniqueClubs.map(club => (
-                            <SelectItem key={club} value={club}>{club}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Range Filters Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Usia (Tahun)</Label>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          placeholder="Min" 
-                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
-                          value={athleteAgeMin} 
-                          onChange={e => setAthleteAgeMin(e.target.value)} 
-                        />
-                        <span className="text-muted-foreground text-xs font-bold">–</span>
-                        <Input 
-                          type="number" 
-                          placeholder="Max" 
-                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
-                          value={athleteAgeMax} 
-                          onChange={e => setAthleteAgeMax(e.target.value)} 
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Berat Badan (kg)</Label>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          placeholder="Min" 
-                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
-                          value={athleteWeightMin} 
-                          onChange={e => setAthleteWeightMin(e.target.value)} 
-                        />
-                        <span className="text-muted-foreground text-xs font-bold">–</span>
-                        <Input 
-                          type="number" 
-                          placeholder="Max" 
-                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
-                          value={athleteWeightMax} 
-                          onChange={e => setAthleteWeightMax(e.target.value)} 
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tinggi Badan (cm)</Label>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          placeholder="Min" 
-                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
-                          value={athleteHeightMin} 
-                          onChange={e => setAthleteHeightMin(e.target.value)} 
-                        />
-                        <span className="text-muted-foreground text-xs font-bold">–</span>
-                        <Input 
-                          type="number" 
-                          placeholder="Max" 
-                          className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
-                          value={athleteHeightMax} 
-                          onChange={e => setAthleteHeightMax(e.target.value)} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-foreground/5">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-10 text-xs font-bold rounded-lg border border-foreground/10 hover:bg-foreground/5"
+                </div>
+                <div className="flex gap-2">
+                  {hasUnsavedChanges && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 rounded-xl px-4 text-xs font-medium text-destructive hover:bg-destructive/10"
                       onClick={() => {
-                        setAthleteSearch(""); 
-                        setAthleteGenderFilter("all"); 
-                        setAthleteBeltFilter("all");
-                        setAthleteClubFilter("all"); 
-                        setAthleteAgeMin(""); 
-                        setAthleteAgeMax("");
-                        setAthleteWeightMin(""); 
-                        setAthleteWeightMax("");
-                        setAthleteHeightMin(""); 
-                        setAthleteHeightMax("");
+                        loadGroups();
+                        setHasUnsavedChanges(false);
+                        toast.info("Perubahan dibatalkan.");
                       }}
                     >
-                      <Eraser className="mr-2 h-3 w-3" />
-                      Reset Filter
+                      <Undo2 className="mr-2 h-4 w-4" />
+                      Batal
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 rounded-xl px-4 text-xs font-medium hover:bg-foreground/5"
+                    onClick={() => setCategoryDialogOpen(true)}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Re-upload
+                  </Button>
+                  {groups.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10 rounded-xl px-6 text-xs font-medium border-foreground/10 hover:bg-foreground/5"
+                      onClick={() => setPreviewDialogOpen(true)}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    className="h-10 rounded-xl px-8 text-xs font-bold bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10"
+                    disabled={!hasUnsavedChanges || saving}
+                    onClick={handleConfirmGroups}
+                  >
+                    {saving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Simpan Perubahan
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
 
-            {/* ATHLETE LIST TABLE */}
-            <Card className="overflow-hidden border-foreground/10 bg-background/70">
-              <Table>
-                <TableHeader className="bg-foreground/[0.02] border-b border-foreground/5">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider">Nama Atlet</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider">Info Fisik</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider">Kategori & Kelas</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider">Klub / Kontingen</TableHead>
-                    <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAthleteList.length === 0 ? (
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
-                        <div className="flex flex-col items-center gap-2">
-                          <Search className="h-8 w-8 opacity-20" />
-                          <p className="text-sm">Tidak ada atlet yang cocok dengan filter.</p>
+            <TabsContent value="athletes" className="space-y-6">
+              {/* ATHLETE DASHBOARD STATS */}
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <Card className="shadow-none border-foreground/5 bg-transparent">
+                  <CardContent className="p-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Total Atlet</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">{filteredAthleteList.length}</p>
+                    <p className="text-[9px] text-muted-foreground">dari {athletes.length}</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-none border-foreground/5 bg-transparent">
+                  <CardContent className="p-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Gender</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">
+                      {filteredAthleteList.filter(a => a.gender === 0).length}
+                      <span className="text-muted-foreground/30 font-normal mx-1">/</span>
+                      {filteredAthleteList.filter(a => a.gender === 1).length}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground">L / P</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-none border-foreground/5 bg-transparent">
+                  <CardContent className="p-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Kelas</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">
+                      {filteredAthleteList.filter(a => a.class_level === '1').length}
+                      <span className="text-muted-foreground/30 font-normal mx-1">/</span>
+                      {filteredAthleteList.filter(a => a.class_level === '0').length}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground">Pr / Pe</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-none border-foreground/5 bg-transparent">
+                  <CardContent className="p-2">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Klub</p>
+                    <p className="mt-1 text-xl font-bold text-foreground">{uniqueClubs.length}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* SEARCH & FILTERS SECTION */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Filter & Pencarian</h3>
+                </div>
+
+                <Card className="border-foreground/10 bg-background/60 overflow-hidden">
+                  <CardContent className="p-6 space-y-6">
+                    {/* Search Row */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Cari Atlet (Nama / Klub)</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Ketik nama atlet atau nama klub..."
+                          className="pl-9 h-11 bg-background/50 border-foreground/10 rounded-lg focus:border-foreground/30 transition-all"
+                          value={athleteSearch}
+                          onChange={(e) => setAthleteSearch(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Primary Filters Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gender</Label>
+                        <Select value={athleteGenderFilter} onValueChange={setAthleteGenderFilter}>
+                          <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
+                            <SelectValue placeholder="Semua Gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Semua Gender</SelectItem>
+                            <SelectItem value="0">Putra</SelectItem>
+                            <SelectItem value="1">Putri</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sabuk (Belt)</Label>
+                        <Select value={athleteBeltFilter} onValueChange={setAthleteBeltFilter}>
+                          <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
+                            <SelectValue placeholder="Semua Sabuk" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Semua Sabuk</SelectItem>
+                            {Object.entries(sabukLabels).map(([val, label]) => (
+                              <SelectItem key={val} value={val}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Klub / Instansi</Label>
+                        <Select value={athleteClubFilter} onValueChange={setAthleteClubFilter}>
+                          <SelectTrigger className="h-11 bg-background/50 border-foreground/10 rounded-lg focus:ring-0">
+                            <SelectValue placeholder="Semua Klub" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Semua Klub</SelectItem>
+                            {uniqueClubs.map(club => (
+                              <SelectItem key={club} value={club}>{club}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Range Filters Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Usia (Tahun)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Min"
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                            value={athleteAgeMin}
+                            onChange={e => setAthleteAgeMin(e.target.value)}
+                          />
+                          <span className="text-muted-foreground text-xs font-bold">–</span>
+                          <Input
+                            type="number"
+                            placeholder="Max"
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                            value={athleteAgeMax}
+                            onChange={e => setAthleteAgeMax(e.target.value)}
+                          />
                         </div>
-                      </TableCell>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Berat Badan (kg)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Min"
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                            value={athleteWeightMin}
+                            onChange={e => setAthleteWeightMin(e.target.value)}
+                          />
+                          <span className="text-muted-foreground text-xs font-bold">–</span>
+                          <Input
+                            type="number"
+                            placeholder="Max"
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                            value={athleteWeightMax}
+                            onChange={e => setAthleteWeightMax(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tinggi Badan (cm)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Min"
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                            value={athleteHeightMin}
+                            onChange={e => setAthleteHeightMin(e.target.value)}
+                          />
+                          <span className="text-muted-foreground text-xs font-bold">–</span>
+                          <Input
+                            type="number"
+                            placeholder="Max"
+                            className="h-10 bg-background/50 border-foreground/10 rounded-lg flex-1 text-sm"
+                            value={athleteHeightMax}
+                            onChange={e => setAthleteHeightMax(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-foreground/5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-10 text-xs font-bold rounded-lg border border-foreground/10 hover:bg-foreground/5"
+                        onClick={() => {
+                          setAthleteSearch("");
+                          setAthleteGenderFilter("all");
+                          setAthleteBeltFilter("all");
+                          setAthleteClubFilter("all");
+                          setAthleteAgeMin("");
+                          setAthleteAgeMax("");
+                          setAthleteWeightMin("");
+                          setAthleteWeightMax("");
+                          setAthleteHeightMin("");
+                          setAthleteHeightMax("");
+                        }}
+                      >
+                        <Eraser className="mr-2 h-3 w-3" />
+                        Reset Filter
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* ATHLETE LIST TABLE */}
+              <Card className="overflow-hidden border-foreground/10 bg-background/70">
+                <Table>
+                  <TableHeader className="bg-foreground/[0.02] border-b border-foreground/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Nama Atlet</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Info Fisik</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Kategori & Kelas</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Klub / Kontingen</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Aksi</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredAthleteList.map((athlete) => (
-                      <TableRow key={athlete.id} className="hover:bg-foreground/[0.02] transition-colors border-b border-foreground/5">
-                        <TableCell className="py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="font-bold text-sm leading-tight">{athlete.nama}</span>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge 
-                                className={`text-[8px] h-5 px-2 uppercase font-bold shadow-none border-none ${
-                                  athlete.gender === 0 ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {athlete.gender === 0 ? "Putra" : "Putri"}
-                              </Badge>
-                              <Badge 
-                                className="text-[8px] h-5 px-2 border border-foreground/10 bg-transparent text-muted-foreground font-bold shadow-none"
-                              >
-                                {sabukLabels[normalizeSabukCode(athlete.sabuk)] || "PUTIH"}
-                              </Badge>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex flex-col gap-2 text-[12px]">
-                            <div className="flex items-center justify-between w-32">
-                              <span className="text-muted-foreground font-medium">Usia:</span>
-                              <span className="font-mono font-bold">{athlete.umur} th</span>
-                            </div>
-                            <div className="flex items-center justify-between w-32">
-                              <span className="text-muted-foreground font-medium">Berat:</span>
-                              <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
-                            </div>
-                            <div className="flex items-center justify-between w-32">
-                              <span className="text-muted-foreground font-medium">Tinggi:</span>
-                              <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex flex-col gap-1.5">
-                            <Badge 
-                              className={`w-fit text-[10px] font-bold uppercase shadow-none border-none ${
-                                athlete.class_level === '1' ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {athlete.class_level === '1' ? 'PRESTASI' : 'PEMULA'}
-                            </Badge>
-                            <span className="text-[10px] font-medium text-muted-foreground">
-                              Belum dikelompokkan
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-bold text-sm text-blue-600 uppercase">{athlete.klub || "—"}</span>
-                            <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{athlete.kontingen || "—"}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right py-4">
-                          <div className="flex justify-end gap-1">
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              className="h-9 w-9 rounded-lg hover:bg-foreground/5 hover:text-foreground transition-all" 
-                              onClick={() => openAthleteDialog(athlete)}
-                              title="Edit atlet"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              className="h-9 w-9 rounded-lg hover:bg-foreground/5 hover:text-foreground transition-all" 
-                              onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
-                              title="Hapus atlet"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAthleteList.length === 0 ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                          <div className="flex flex-col items-center gap-2">
+                            <Search className="h-8 w-8 opacity-20" />
+                            <p className="text-sm">Tidak ada atlet yang cocok dengan filter.</p>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-            </Tabs>
-          </div>
+                    ) : (
+                      filteredAthleteList.map((athlete) => (
+                        <TableRow key={athlete.id} className="hover:bg-foreground/[0.02] transition-colors border-b border-foreground/5">
+                          <TableCell className="py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-sm leading-tight">{athlete.nama}</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge
+                                  className={`text-[8px] h-5 px-2 uppercase font-bold shadow-none border-none ${athlete.gender === 0 ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
+                                    }`}
+                                >
+                                  {athlete.gender === 0 ? "Putra" : "Putri"}
+                                </Badge>
+                                <Badge
+                                  className="text-[8px] h-5 px-2 border border-foreground/10 bg-transparent text-muted-foreground font-bold shadow-none"
+                                >
+                                  {sabukLabels[normalizeSabukCode(athlete.sabuk)] || "PUTIH"}
+                                </Badge>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex flex-col gap-2 text-[12px]">
+                              <div className="flex items-center justify-between w-32">
+                                <span className="text-muted-foreground font-medium">Usia:</span>
+                                <span className="font-mono font-bold">{athlete.umur} th</span>
+                              </div>
+                              <div className="flex items-center justify-between w-32">
+                                <span className="text-muted-foreground font-medium">Berat:</span>
+                                <span className="font-mono font-bold">{athlete.berat_kg} kg</span>
+                              </div>
+                              <div className="flex items-center justify-between w-32">
+                                <span className="text-muted-foreground font-medium">Tinggi:</span>
+                                <span className="font-mono font-bold">{athlete.tinggi_cm} cm</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex flex-col gap-1.5">
+                              <Badge
+                                className={`w-fit text-[10px] font-bold uppercase shadow-none border-none ${athlete.class_level === '1' ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
+                                  }`}
+                              >
+                                {athlete.class_level === '1' ? 'PRESTASI' : 'PEMULA'}
+                              </Badge>
+                              <span className="text-[10px] font-medium text-muted-foreground">
+                                Belum dikelompokkan
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-sm text-blue-600 uppercase">{athlete.klub || "—"}</span>
+                              <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{athlete.kontingen || "—"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right py-4">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 rounded-lg hover:bg-foreground/5 hover:text-foreground transition-all"
+                                onClick={() => openAthleteDialog(athlete)}
+                                title="Edit atlet"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 rounded-lg hover:bg-foreground/5 hover:text-foreground transition-all"
+                                onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
+                                title="Hapus atlet"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
+      </div>
 
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-xl">
@@ -1947,11 +1945,10 @@ export default function MatchesPage() {
             )}
             <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">File atlet</Label>
             <div
-              className={`relative flex aspect-square w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
-                isDragging
+              className={`relative flex aspect-square w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer ${isDragging
                   ? "border-foreground bg-foreground/5 scale-[1.02] shadow-2xl shadow-foreground/5"
                   : "border-foreground/10 bg-foreground/[0.02] hover:border-foreground/20"
-              }`}
+                }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -1964,7 +1961,7 @@ export default function MatchesPage() {
                 accept=".csv,.xls,.xlsx"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
-              
+
               {file ? (
                 <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
                   <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-foreground/5 ring-1 ring-foreground/10">
@@ -1972,9 +1969,9 @@ export default function MatchesPage() {
                   </div>
                   <p className="max-w-[250px] truncate font-display text-lg">{file.name}</p>
                   <p className="mt-1 font-mono text-xs text-muted-foreground tracking-tight">{(file.size / 1024).toFixed(1)} KB</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="mt-6 rounded-full text-xs font-medium hover:bg-destructive/10 hover:text-destructive transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2044,20 +2041,20 @@ export default function MatchesPage() {
                   </SelectContent>
                 </Select>
                 {selectedCategory === "poomsae" && (
-                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-10 rounded-lg text-xs text-destructive border-destructive/20 hover:bg-destructive/10" 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 rounded-lg text-xs text-destructive border-destructive/20 hover:bg-destructive/10"
                     onClick={clearAllGroups}
                   >
                     <Eraser className="mr-2 h-3 w-3" />
                     Kosongkan Semua
                   </Button>
                 )}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-10 rounded-lg text-xs" 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 rounded-lg text-xs"
                   onClick={() => {
                     setPreviewSearch("");
                     setPreviewGender("all");
@@ -2092,8 +2089,8 @@ export default function MatchesPage() {
                   </div>
                 </div>
               ) : groups.filter(g => {
-                const matchesSearch = g.group_name.toLowerCase().includes(previewSearch.toLowerCase()) || 
-                                     g.athletes.some(a => a.nama.toLowerCase().includes(previewSearch.toLowerCase()));
+                const matchesSearch = g.group_name.toLowerCase().includes(previewSearch.toLowerCase()) ||
+                  g.athletes.some(a => a.nama.toLowerCase().includes(previewSearch.toLowerCase()));
                 const matchesGender = previewGender === "all" || String(g.gender) === previewGender;
                 return matchesSearch && matchesGender;
               }).length === 0 ? (
@@ -2105,16 +2102,16 @@ export default function MatchesPage() {
                 <div className={`grid gap-4 ${selectedCategory === "poomsae" ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
                   {groups
                     .filter(g => {
-                      const matchesSearch = g.group_name.toLowerCase().includes(previewSearch.toLowerCase()) || 
-                                           g.athletes.some(a => a.nama.toLowerCase().includes(previewSearch.toLowerCase()));
+                      const matchesSearch = g.group_name.toLowerCase().includes(previewSearch.toLowerCase()) ||
+                        g.athletes.some(a => a.nama.toLowerCase().includes(previewSearch.toLowerCase()));
                       const matchesGender = previewGender === "all" || String(g.gender) === previewGender;
                       return matchesSearch && matchesGender;
                     })
                     .map((group, index) => {
                       const key = groupKey(group, index);
                       return (
-                        <Card 
-                          key={key} 
+                        <Card
+                          key={key}
                           className="group overflow-hidden rounded-xl border-foreground/10 bg-background/50 transition-all hover:border-foreground/20 hover:shadow-lg hover:shadow-foreground/[0.02]"
                           onDragOver={(event) => event.preventDefault()}
                           onDrop={() => draggedAthlete && moveAthlete(draggedAthlete.fromGroup, key, draggedAthlete.athleteId)}
@@ -2136,8 +2133,8 @@ export default function MatchesPage() {
                               <div className="space-y-2">
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 px-1">Daftar Atlet</p>
                                 {(group.athletes || []).map((athlete) => (
-                                  <div 
-                                    key={athleteKey(athlete)} 
+                                  <div
+                                    key={athleteKey(athlete)}
                                     draggable
                                     onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
                                     className="relative flex flex-col rounded-lg border border-foreground/5 bg-foreground/[0.02] p-3 transition-colors hover:bg-foreground/[0.04]"
@@ -2158,28 +2155,28 @@ export default function MatchesPage() {
                                           <span className="truncate max-w-[120px]">KLUB: {athlete.klub || athlete.kontingen || "-"}</span>
                                         </p>
                                       </div>
-                                        <div className="flex gap-1">
-                                          <Button 
-                                            size="icon" 
-                                            variant="ghost" 
-                                            className="h-6 w-6 text-muted-foreground hover:text-destructive" 
-                                            onClick={() => removeAthlete(key, athleteKey(athlete))}
-                                            title="Keluarkan dari kelompok"
+                                      <div className="flex gap-1">
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                          onClick={() => removeAthlete(key, athleteKey(athlete))}
+                                          title="Keluarkan dari kelompok"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                        {athlete.id && (
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                            onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
+                                            title="Hapus permanen dari database"
                                           >
-                                            <X className="h-3 w-3" />
+                                            <Trash2 className="h-3 w-3" />
                                           </Button>
-                                          {athlete.id && (
-                                            <Button 
-                                              size="icon" 
-                                              variant="ghost" 
-                                              className="h-6 w-6 text-muted-foreground hover:text-destructive" 
-                                              onClick={() => athlete.id !== undefined && deleteAthlete(athlete.id)}
-                                              title="Hapus permanen dari database"
-                                            >
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                          )}
-                                        </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 ))}
@@ -2238,18 +2235,18 @@ export default function MatchesPage() {
                       {poomsaePool.length} Tersisa
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                      <Input 
-                        placeholder="Search pool..." 
+                      <Input
+                        placeholder="Search pool..."
                         className="h-8 pl-8 text-xs bg-background"
                         value={poolSearch}
-                        onChange={(e) => setPoolSearch(e.target.value)} 
+                        onChange={(e) => setPoolSearch(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-3 gap-2">
                       <Select value={previewGender} onValueChange={setPreviewGender}>
                         <SelectTrigger className="h-8 text-[10px] px-2">
@@ -2290,8 +2287,8 @@ export default function MatchesPage() {
                 <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-foreground/10">
                   {poomsaePool
                     .filter(a => {
-                      const matchesSearch = a.nama.toLowerCase().includes(poolSearch.toLowerCase()) || 
-                                           (a.klub || "").toLowerCase().includes(poolSearch.toLowerCase());
+                      const matchesSearch = a.nama.toLowerCase().includes(poolSearch.toLowerCase()) ||
+                        (a.klub || "").toLowerCase().includes(poolSearch.toLowerCase());
                       const matchesGender = previewGender === "all" || String(a.gender) === previewGender;
                       const matchesSabuk = poolSabukFilter === "all" || String(a.sabuk) === poolSabukFilter;
                       const matchesAge = poolAgeFilter === "all" || String(a.umur) === poolAgeFilter;
@@ -2301,14 +2298,13 @@ export default function MatchesPage() {
                       const id = athleteKey(athlete);
                       const isSelected = selectedPoolAthletes.includes(id);
                       return (
-                        <div 
+                        <div
                           key={id}
                           onClick={() => togglePoolAthlete(id)}
-                          className={`group relative flex flex-col p-3 rounded-lg border cursor-pointer transition-all ${
-                            isSelected 
-                            ? 'bg-primary/10 border-primary shadow-sm' 
-                            : 'bg-background border-foreground/5 hover:border-foreground/20'
-                          }`}
+                          className={`group relative flex flex-col p-3 rounded-lg border cursor-pointer transition-all ${isSelected
+                              ? 'bg-primary/10 border-primary shadow-sm'
+                              : 'bg-background border-foreground/5 hover:border-foreground/20'
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-medium truncate flex-1">{athlete.nama}</p>
@@ -2322,7 +2318,7 @@ export default function MatchesPage() {
                         </div>
                       );
                     })}
-                  
+
                   {poomsaePool.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full opacity-30 text-center p-8">
                       <UserCheck className="h-12 w-12 mb-2" />
@@ -2332,8 +2328,8 @@ export default function MatchesPage() {
                 </div>
 
                 <div className="p-4 bg-background border-t border-foreground/5">
-                  <Button 
-                    className="w-full h-11 rounded-xl shadow-lg shadow-primary/20" 
+                  <Button
+                    className="w-full h-11 rounded-xl shadow-lg shadow-primary/20"
                     disabled={selectedPoolAthletes.length === 0}
                     onClick={createManualGroup}
                   >
@@ -2345,9 +2341,9 @@ export default function MatchesPage() {
             )}
           </div>
           <DialogFooter className="flex items-center justify-end gap-3 border-t border-foreground/5 bg-background/80 p-6 backdrop-blur-md">
-            <Button 
-              variant="ghost" 
-              className="h-11 rounded-xl px-6 text-destructive hover:bg-destructive/10 transition-all text-sm font-medium" 
+            <Button
+              variant="ghost"
+              className="h-11 rounded-xl px-6 text-destructive hover:bg-destructive/10 transition-all text-sm font-medium"
               onClick={() => {
                 loadGroups();
                 setPreviewDialogOpen(false);
@@ -2358,16 +2354,16 @@ export default function MatchesPage() {
               Batal
             </Button>
             <div className="flex-1" />
-            <Button 
-              variant="outline" 
-              className="h-11 rounded-lg px-8 border-foreground/10 hover:bg-foreground/5 transition-all text-sm font-medium" 
+            <Button
+              variant="outline"
+              className="h-11 rounded-lg px-8 border-foreground/10 hover:bg-foreground/5 transition-all text-sm font-medium"
               onClick={() => setPreviewDialogOpen(false)}
             >
               Lanjut edit
             </Button>
-            <Button 
-              className="h-11 rounded-lg px-10 bg-foreground text-background hover:bg-foreground/90 transition-all text-sm font-bold" 
-              disabled={saving} 
+            <Button
+              className="h-11 rounded-lg px-10 bg-foreground text-background hover:bg-foreground/90 transition-all text-sm font-bold"
+              disabled={saving}
               onClick={handleConfirmGroups}
             >
               {saving ? (
@@ -2573,7 +2569,7 @@ export default function MatchesPage() {
                 <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Klub / Instansi</Label>
                 <Input name="klub" defaultValue={editingAthlete?.klub} className="rounded-xl bg-background/50 border-foreground/10 h-11" />
               </div>
-               <div className="space-y-2 sm:col-span-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Kontingen</Label>
                 <Input name="kontingen" defaultValue={editingAthlete?.kontingen} className="rounded-xl bg-background/50 border-foreground/10 h-11" />
               </div>

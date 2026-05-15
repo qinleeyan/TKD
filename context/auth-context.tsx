@@ -56,44 +56,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [router]);
 
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
+      const token = localStorage.getItem("auth_token");
       const role = localStorage.getItem("user_role");
       const username = localStorage.getItem("user_username");
-      const token = localStorage.getItem("auth_token");
 
       if (!token) {
         setUser(null);
         setLoading(false);
-        // Protected route check
-        const protectedPaths = ["/dashboard", "/registrasi", "/operator", "/matches"];
-        if (protectedPaths.some(p => pathname.startsWith(p))) {
-          router.push("/login");
-        }
         return;
       }
 
-      if (role && role !== "undefined" && role !== "null") {
-        setUser({ role });
-        
-        const protectedPaths = ["/dashboard", "/registrasi", "/operator", "/matches"];
-        if (protectedPaths.some(p => pathname.startsWith(p))) {
-          if (!checkAccess(role, pathname)) {
-            // Redirect to appropriate page
-            if (role === "register") router.replace("/registrasi");
-            else if (role === "operator") router.replace("/operator");
-            else if (role === "match") router.replace("/matches");
-            else if (role === "superadmin") router.replace("/dashboard");
-            else router.replace("/");
+      // If we have token but missing details (e.g. from old version), fetch them
+      if (!role || !username || role === "undefined" || username === "undefined") {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/auth/me/`, {
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem("user_role", data.role);
+            localStorage.setItem("user_username", data.username);
+            setUser({ role: data.role, username: data.username });
+          } else {
+            logout();
           }
+        } catch (err) {
+          console.error("Auth initialization failed:", err);
+          logout();
+        } finally {
+          setLoading(false);
         }
       } else {
-        setUser(null);
+        // We have everything
+        setUser({ role, username });
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
-  }, [pathname, router, checkAccess]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, checkAccess }}>

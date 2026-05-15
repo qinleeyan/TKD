@@ -41,55 +41,61 @@ export function GlobalSidebar() {
 
       {/* Sidebar Drawer */}
       <div 
-        className={`fixed top-0 left-0 h-screen bg-background/95 backdrop-blur-xl border-r border-foreground/10 shadow-2xl transition-transform duration-500 z-40 flex flex-col w-80 sm:w-96 ${
+        className={`fixed top-0 left-0 h-[100dvh] bg-background/95 backdrop-blur-xl border-r border-foreground/10 shadow-2xl transition-transform duration-500 z-[100] flex flex-col w-80 sm:w-96 ${
           isCollapsed ? "-translate-x-full" : "translate-x-0"
         }`}
       >
         {/* Sidebar Header & Toggle */}
-        <div className="h-16 flex items-center justify-between px-4 shrink-0">
+        <div className="h-14 sm:h-16 flex items-center justify-between px-4 shrink-0 mt-2 sm:mt-0">
           <div className="flex flex-col">
-            <span className="font-display text-lg tracking-tight">Hub</span>
-            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">Global Control</span>
+            <span className="font-display text-base sm:text-lg tracking-tight">Hub</span>
+            <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono uppercase tracking-widest leading-none">Global Control</span>
           </div>
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => setIsCollapsed(true)}
-            className="shrink-0"
+            className="shrink-0 h-8 w-8 sm:h-10 sm:w-10"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
 
         {/* Browser-like Tabs */}
-        <div className="flex px-2 pt-2 border-b border-foreground/10 shrink-0 bg-foreground/5">
+        <div className="flex px-1 sm:px-2 pt-1 sm:pt-2 border-b border-foreground/10 shrink-0 bg-foreground/5">
           <button
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 text-sm font-medium rounded-t-lg transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3 text-xs sm:text-sm font-medium rounded-t-lg transition-all ${
               activeTab === "stats" 
                 ? "bg-background text-foreground shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-l border-r border-foreground/10 relative z-10" 
                 : "text-muted-foreground hover:bg-foreground/5 border-transparent"
             }`}
             onClick={() => setActiveTab("stats")}
           >
-            <Activity className="w-4 h-4" />
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Statistik
           </button>
           <button
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 text-sm font-medium rounded-t-lg transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3 text-xs sm:text-sm font-medium rounded-t-lg transition-all ${
               activeTab === "chat" 
                 ? "bg-background text-foreground shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t border-l border-r border-foreground/10 relative z-10" 
                 : "text-muted-foreground hover:bg-foreground/5 border-transparent"
             }`}
             onClick={() => setActiveTab("chat")}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Admin Chat
           </button>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden relative bg-background">
-          {activeTab === "stats" ? <StatsView /> : <ChatView />}
+        <div className="flex-1 min-h-0 relative bg-background overflow-hidden">
+          {activeTab === "stats" ? (
+            <div className="h-full overflow-y-auto">
+              <StatsView />
+            </div>
+          ) : (
+            <ChatView />
+          )}
         </div>
       </div>
     </>
@@ -299,16 +305,16 @@ function ChatView() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-foreground/[0.02]">
+    <div className="flex flex-col h-full bg-foreground/[0.02] overflow-hidden">
       {/* Chat Info Header */}
-      <div className="bg-blue-500/10 border-b border-blue-500/20 p-3 shrink-0 flex items-center justify-between">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-blue-500/20 rounded-full">
-            <Users className="w-4 h-4 text-blue-600" />
+      <div className="bg-blue-500/10 border-b border-blue-500/20 p-2 sm:p-3 shrink-0 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-full">
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide">Global Admin Group</h4>
-            <p className="text-[10px] text-blue-600/80 mt-0.5 leading-snug">Semua admin terhubung di sini.</p>
+            <h4 className="text-[10px] sm:text-xs font-bold text-blue-700 uppercase tracking-wide">Global Admin Group</h4>
+            <p className="text-[8px] sm:text-[10px] text-blue-600/80 leading-none">Semua admin terhubung.</p>
           </div>
         </div>
         {user?.role === "superadmin" && (
@@ -332,11 +338,14 @@ function ChatView() {
           <p className="text-center text-xs text-muted-foreground py-8 font-mono">No messages yet.</p>
         ) : (
           messages.map((msg, idx) => {
-            const isMe = msg.username === user?.username;
+            const msgUser = (msg.username || "").trim().toLowerCase();
+            const currUser = (user?.username || "").trim().toLowerCase();
+            const isMe = msgUser === currUser && currUser !== "";
+            const roleColor = getRoleColor(msg.role);
             return (
               <div key={msg.id || idx} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                 <div className={`flex items-baseline gap-2 mb-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${getRoleColor(msg.role)}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${roleColor}`}>
                     {msg.username}
                   </span>
                   <span className="text-[9px] text-muted-foreground">
