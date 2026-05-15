@@ -1541,7 +1541,7 @@ export default function MatchesPage() {
                                   
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button size="icon" variant="ghost" className="h-5 w-5 opacity-0 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity">
+                                      <Button size="icon" variant="ghost" className="h-5 w-5 opacity-30 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity">
                                         <MoreVertical className="h-3 w-3" />
                                       </Button>
                                     </DropdownMenuTrigger>
@@ -2286,7 +2286,7 @@ export default function MatchesPage() {
                                           
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity">
+                                              <Button size="icon" variant="ghost" className="h-6 w-6 opacity-30 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity">
                                                 <MoreVertical className="h-3.5 w-3.5" />
                                               </Button>
                                             </DropdownMenuTrigger>
