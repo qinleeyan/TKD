@@ -1637,6 +1637,12 @@ export default function MatchesPage() {
 
           <TabsContent value="athletes">
             <div className="mb-6 flex flex-col gap-6">
+              {/* ADMIN DASHBOARD HEADER */}
+              <div className="flex flex-col gap-2">
+                <h2 className="text-2xl font-display font-bold">Dashboard Statistik Atlet</h2>
+                <p className="text-sm text-muted-foreground">Ringkasan data dan statistik peserta pertandingan</p>
+              </div>
+
               {/* ATHLETE DASHBOARD METRICS */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
                 <Card className="border-foreground/5 bg-gradient-to-br from-foreground/[0.06] to-foreground/[0.02] backdrop-blur-sm">
@@ -1707,10 +1713,10 @@ export default function MatchesPage() {
               </div>
 
               {/* FILTER SECTION HEADER */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="pt-2 mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wide">Filter & Cari Data Atlet</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">Gunakan filter di bawah untuk mencari atlet spesifik sesuai kriteria</p>
+                  <h3 className="text-lg font-display font-bold">Data Atlet</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">Kelola dan filter data peserta sesuai kriteria yang dibutuhkan</p>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" className="h-9 text-xs font-bold border border-foreground/5 rounded-lg" onClick={() => {
