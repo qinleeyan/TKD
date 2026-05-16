@@ -62,7 +62,7 @@ import { toast } from "sonner";
 import { useRealtime } from "@/hooks/use-realtime";
 
 type Category = "kyourugi" | "poomsae";
-type SortBy = "age" | "gender" | "weight" | "height";
+type SortBy = "default" | "age" | "gender" | "weight" | "height";
 
 type AthleteCard = {
   id?: number;
@@ -270,6 +270,7 @@ function groupMetric(group: GroupCard, sortBy: SortBy) {
   const heights = athletes.map((a) => a.tinggi_cm || 0);
   const weights = athletes.map((a) => a.berat_kg || 0);
 
+  if (sortBy === "default") return group.sort_order ?? group.id ?? 0;
   if (sortBy === "age") return group.age_min ?? (ages.length ? Math.min(...ages) : 0);
   if (sortBy === "gender") return group.gender;
   if (sortBy === "height") return group.height_min ?? (heights.length ? Math.min(...heights) : 0);
@@ -284,7 +285,7 @@ export default function MatchesPage() {
   const [rounds, setRounds] = useState<RoundRow[]>([]);
   const [athletes, setAthletes] = useState<AthleteCard[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category>("kyourugi");
-  const [sortBy, setSortBy] = useState<SortBy>("weight");
+  const [sortBy, setSortBy] = useState<SortBy>("default");
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -1369,6 +1370,7 @@ export default function MatchesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="default">Urut grup (Default)</SelectItem>
                   <SelectItem value="age">Urut usia</SelectItem>
                   <SelectItem value="gender">Urut gender</SelectItem>
                   <SelectItem value="weight">Urut berat</SelectItem>
