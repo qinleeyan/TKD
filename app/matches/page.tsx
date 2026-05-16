@@ -2882,241 +2882,214 @@ export default function MatchesPage() {
         </DialogContent>
       </Dialog>
       <Dialog open={gladiatorDialogOpen} onOpenChange={setGladiatorDialogOpen}>
-        <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-4xl w-[95vw]">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="bg-background/95 backdrop-blur-2xl border border-foreground/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] rounded-[2.5rem] overflow-hidden"
-          >
-            <DialogHeader className="p-8 bg-gradient-to-r from-primary/10 via-background to-primary/10 border-b border-foreground/5">
-              <div className="flex items-center gap-5">
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-inner">
-                  <Swords className="h-7 w-7" />
-                </div>
-                <div className="space-y-1">
-                  <DialogTitle className="text-3xl font-black tracking-tight uppercase italic">Gladiator Arena</DialogTitle>
-                  <DialogDescription className="text-sm font-medium text-muted-foreground/80">
-                    Matchmaking ad-hoc real-time untuk atlet tandingan khusus.
-                  </DialogDescription>
-                </div>
+        <DialogContent className="rounded-3xl sm:max-w-2xl bg-background/95 backdrop-blur-xl border-foreground/10 shadow-2xl p-0 overflow-visible">
+          <DialogHeader className="p-6 bg-primary/[0.03] border-b border-primary/10">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <Swords className="h-5 w-5" />
               </div>
-            </DialogHeader>
-            
-            <div className="p-8 space-y-10">
-              <div className="grid grid-cols-1 lg:grid-cols-11 gap-8 items-start relative">
-                {/* VS Divider */}
-                <div className="hidden lg:flex absolute inset-0 items-center justify-center pointer-events-none z-10">
-                  <motion.div 
-                    initial={{ rotate: -15, scale: 0 }}
-                    animate={{ rotate: 0, scale: 1 }}
-                    className="h-16 w-16 rounded-2xl bg-background border-2 border-foreground/5 shadow-[0_8px_16px_rgba(0,0,0,0.1)] flex items-center justify-center font-black text-2xl italic text-primary/40 -translate-y-6 bg-gradient-to-br from-background to-muted"
-                  >
-                    VS
-                  </motion.div>
-                </div>
-
-                {/* Red Corner */}
-                <div className="lg:col-span-5 space-y-6">
-                  <div className="flex items-center justify-between px-1">
-                    <Label className="text-xs font-black text-red-500 uppercase tracking-[0.2em] flex items-center gap-3">
-                      <motion.div 
-                        animate={{ scale: [1, 1.5, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]" 
-                      />
-                      Sudut Merah
-                    </Label>
-                    {gladiatorForm.red.id && (
-                      <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 text-[10px] font-bold px-2 py-0">Terpilih</Badge>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-4 relative">
-                    <div className="relative group">
-                      <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-red-500 transition-all duration-300" />
-                      <Input 
-                        placeholder="Cari atau tulis nama atlet..." 
-                        className="h-14 pl-12 text-base font-bold bg-muted/20 border-foreground/5 focus:border-red-500/30 focus:bg-background rounded-2xl transition-all shadow-inner focus:shadow-xl focus:shadow-red-500/5"
-                        value={redSearchQuery || gladiatorForm.red.nama}
-                        onChange={(e) => {
-                          setRedSearchQuery(e.target.value);
-                          setGladiatorForm(prev => ({ ...prev, red: { ...prev.red, nama: e.target.value, id: null } }));
-                        }}
-                      />
-                      
-                      <AnimatePresence>
-                        {filteredRedAthletes.length > 0 && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute top-[calc(100%+8px)] left-0 right-0 z-[100] max-h-[300px] overflow-y-auto rounded-[1.5rem] border border-foreground/10 bg-background/95 backdrop-blur-xl shadow-2xl p-2 space-y-1 scrollbar-thin"
-                          >
-                            {filteredRedAthletes.map(a => (
-                              <motion.div 
-                                key={a.id} 
-                                whileHover={{ x: 4, backgroundColor: "rgba(239,68,68,0.05)" }}
-                                className="px-4 py-3 cursor-pointer rounded-xl flex flex-col gap-0.5 transition-all group/item border border-transparent hover:border-red-500/10"
-                                onClick={() => {
-                                  setGladiatorForm(prev => ({ 
-                                    ...prev, 
-                                    red: { 
-                                      id: Number(a.id), 
-                                      nama: a.nama, 
-                                      kontingen: a.klub || a.kontingen || "UMUM" 
-                                    } 
-                                  }));
-                                  setRedSearchQuery("");
-                                }}
-                              >
-                                <span className="font-black text-sm uppercase tracking-tight group-hover/item:text-red-600 transition-colors line-clamp-1">{a.nama}</span>
-                                <span className="text-[10px] font-medium text-muted-foreground uppercase opacity-60 truncate">{a.klub || a.kontingen || "UMUM"}</span>
-                              </motion.div>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    <div className="relative group">
-                      <Building2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-red-500 transition-all duration-300" />
-                      <Input 
-                        placeholder="Asal Kontingen / Club" 
-                        className="h-14 pl-12 text-sm font-semibold bg-muted/20 border-transparent focus:bg-background focus:border-red-500/20 rounded-2xl transition-all"
-                        value={gladiatorForm.red.kontingen}
-                        onChange={(e) => setGladiatorForm(prev => ({ ...prev, red: { ...prev.red, kontingen: e.target.value } }))}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-1" />
-
-                {/* Blue Corner */}
-                <div className="lg:col-span-5 space-y-6">
-                  <div className="flex items-center justify-between px-1">
-                    <Label className="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-3">
-                      <motion.div 
-                        animate={{ scale: [1, 1.5, 1] }}
-                        transition={{ repeat: Infinity, duration: 2, delay: 1 }}
-                        className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)]" 
-                      />
-                      Sudut Biru
-                    </Label>
-                    {gladiatorForm.blue.id && (
-                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] font-bold px-2 py-0">Terpilih</Badge>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-4 relative">
-                    <div className="relative group">
-                      <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-blue-500 transition-all duration-300" />
-                      <Input 
-                        placeholder="Cari atau tulis nama atlet..." 
-                        className="h-14 pl-12 text-base font-bold bg-muted/20 border-foreground/5 focus:border-blue-500/30 focus:bg-background rounded-2xl transition-all shadow-inner focus:shadow-xl focus:shadow-blue-500/5"
-                        value={blueSearchQuery || gladiatorForm.blue.nama}
-                        onChange={(e) => {
-                          setBlueSearchQuery(e.target.value);
-                          setGladiatorForm(prev => ({ ...prev, blue: { ...prev.blue, nama: e.target.value, id: null } }));
-                        }}
-                      />
-                      
-                      <AnimatePresence>
-                        {filteredBlueAthletes.length > 0 && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute top-[calc(100%+8px)] left-0 right-0 z-[100] max-h-[300px] overflow-y-auto rounded-[1.5rem] border border-foreground/10 bg-background/95 backdrop-blur-xl shadow-2xl p-2 space-y-1 scrollbar-thin"
-                          >
-                            {filteredBlueAthletes.map(a => (
-                              <motion.div 
-                                key={a.id} 
-                                whileHover={{ x: 4, backgroundColor: "rgba(59,130,246,0.05)" }}
-                                className="px-4 py-3 cursor-pointer rounded-xl flex flex-col gap-0.5 transition-all group/item border border-transparent hover:border-blue-500/10"
-                                onClick={() => {
-                                  setGladiatorForm(prev => ({ 
-                                    ...prev, 
-                                    blue: { 
-                                      id: Number(a.id), 
-                                      nama: a.nama, 
-                                      kontingen: a.klub || a.kontingen || "UMUM" 
-                                    } 
-                                  }));
-                                  setBlueSearchQuery("");
-                                }}
-                              >
-                                <span className="font-black text-sm uppercase tracking-tight group-hover/item:text-blue-600 transition-colors line-clamp-1">{a.nama}</span>
-                                <span className="text-[10px] font-medium text-muted-foreground uppercase opacity-60 truncate">{a.klub || a.kontingen || "UMUM"}</span>
-                              </motion.div>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    <div className="relative group">
-                      <Building2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground/30 group-focus-within:text-blue-500 transition-all duration-300" />
-                      <Input 
-                        placeholder="Asal Kontingen / Club" 
-                        className="h-14 pl-12 text-sm font-semibold bg-muted/20 border-transparent focus:bg-background focus:border-blue-500/20 rounded-2xl transition-all"
-                        value={gladiatorForm.blue.kontingen}
-                        onChange={(e) => setGladiatorForm(prev => ({ ...prev, blue: { ...prev.blue, kontingen: e.target.value } }))}
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <DialogTitle className="text-xl font-bold tracking-tight">Match Gladiator (Ad-hoc)</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Buat pertandingan manual untuk atlet yang baru daftar atau tandingan khusus.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="p-6 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-start relative">
+              {/* VS Divider Overlay */}
+              <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-10">
+                <div className="h-10 w-10 rounded-full bg-background border border-foreground/5 shadow-xl flex items-center justify-center font-black text-xs italic text-muted-foreground translate-y-[-12px]">VS</div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Penempatan Arena</Label>
-                  <Select value={gladiatorForm.arena_id} onValueChange={(val) => setGladiatorForm(prev => ({ ...prev, arena_id: val }))}>
-                    <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 transition-all shadow-inner">
-                      <SelectValue placeholder="Pilih Arena Pertandingan" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-foreground/10 shadow-2xl">
-                      {arenas.map(a => (
-                        <SelectItem key={a.id} value={String(a.id)} className="rounded-xl py-3 focus:bg-primary/5">{a.nama}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Nomor Partai / Bout</Label>
-                  <div className="relative">
-                    <Trophy className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground/30" />
-                    <Input 
-                      placeholder="Input nomor partai (misal: 231)" 
-                      className="h-14 pl-12 rounded-2xl bg-muted/30 border-transparent focus:bg-background focus:border-primary/20 transition-all shadow-inner"
-                      value={gladiatorForm.bout_number}
-                      onChange={(e) => setGladiatorForm(prev => ({ ...prev, bout_number: e.target.value }))}
+              {/* Red Corner */}
+              <div className="md:col-span-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
+                    <motion.div 
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
                     />
+                    Sudut Merah
+                  </Label>
+                  {gladiatorForm.red.id && (
+                    <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20 text-[10px] font-bold px-2 py-0">Terpilih</Badge>
+                  )}
+                </div>
+                
+                <div className="space-y-3 relative">
+                  <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-red-500 transition-colors" />
+                    <Input 
+                      placeholder="Cari atau ketik nama atlet..." 
+                      className="h-12 pl-10 text-sm bg-background border-foreground/10 focus:border-red-500/50 rounded-xl transition-all shadow-sm"
+                      value={redSearchQuery || gladiatorForm.red.nama}
+                      onChange={(e) => {
+                        setRedSearchQuery(e.target.value);
+                        setGladiatorForm(prev => ({ ...prev, red: { ...prev.red, nama: e.target.value, id: null } }));
+                      }}
+                    />
+                    
+                    <AnimatePresence>
+                      {filteredRedAthletes.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 5 }}
+                          className="absolute top-[calc(100%+4px)] left-0 right-0 z-[100] max-h-[250px] overflow-y-auto rounded-xl border border-foreground/10 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 scrollbar-thin"
+                        >
+                          {filteredRedAthletes.map(a => (
+                            <div 
+                              key={a.id} 
+                              className="px-3 py-2 text-sm hover:bg-red-500/5 cursor-pointer rounded-lg flex flex-col gap-0.5 transition-all group/item"
+                              onClick={() => {
+                                setGladiatorForm(prev => ({ 
+                                  ...prev, 
+                                  red: { 
+                                    id: Number(a.id), 
+                                    nama: a.nama, 
+                                    kontingen: a.klub || a.kontingen || "UMUM" 
+                                  } 
+                                }));
+                                setRedSearchQuery("");
+                              }}
+                            >
+                              <span className="font-bold group-hover/item:text-red-600 transition-colors">{a.nama}</span>
+                              <span className="text-[10px] text-muted-foreground">{a.klub || a.kontingen || "UMUM"}</span>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
+                  <Input 
+                    placeholder="Asal Klub / Kontingen" 
+                    className="h-10 text-xs bg-muted/30 border-transparent focus:bg-background focus:border-red-500/20 rounded-xl transition-all"
+                    value={gladiatorForm.red.kontingen}
+                    onChange={(e) => setGladiatorForm(prev => ({ ...prev, red: { ...prev.red, kontingen: e.target.value } }))}
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-1" />
+
+              {/* Blue Corner */}
+              <div className="md:col-span-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-2">
+                    <motion.div 
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ repeat: Infinity, duration: 2, delay: 1 }}
+                      className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
+                    />
+                    Sudut Biru
+                  </Label>
+                  {gladiatorForm.blue.id && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] font-bold px-2 py-0">Terpilih</Badge>
+                  )}
+                </div>
+                
+                <div className="space-y-3 relative">
+                  <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-blue-500 transition-colors" />
+                    <Input 
+                      placeholder="Cari atau ketik nama atlet..." 
+                      className="h-12 pl-10 text-sm bg-background border-foreground/10 focus:border-blue-500/50 rounded-xl transition-all shadow-sm"
+                      value={blueSearchQuery || gladiatorForm.blue.nama}
+                      onChange={(e) => {
+                        setBlueSearchQuery(e.target.value);
+                        setGladiatorForm(prev => ({ ...prev, blue: { ...prev.blue, nama: e.target.value, id: null } }));
+                      }}
+                    />
+                    
+                    <AnimatePresence>
+                      {filteredBlueAthletes.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 5 }}
+                          className="absolute top-[calc(100%+4px)] left-0 right-0 z-[100] max-h-[250px] overflow-y-auto rounded-xl border border-foreground/10 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 scrollbar-thin"
+                        >
+                          {filteredBlueAthletes.map(a => (
+                            <div 
+                              key={a.id} 
+                              className="px-3 py-2 text-sm hover:bg-blue-500/5 cursor-pointer rounded-lg flex flex-col gap-0.5 transition-all group/item"
+                              onClick={() => {
+                                setGladiatorForm(prev => ({ 
+                                  ...prev, 
+                                  blue: { 
+                                    id: Number(a.id), 
+                                    nama: a.nama, 
+                                    kontingen: a.klub || a.kontingen || "UMUM" 
+                                  } 
+                                }));
+                                setBlueSearchQuery("");
+                              }}
+                            >
+                              <span className="font-bold group-hover/item:text-blue-600 transition-colors">{a.nama}</span>
+                              <span className="text-[10px] text-muted-foreground">{a.klub || a.kontingen || "UMUM"}</span>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <Input 
+                    placeholder="Asal Klub / Kontingen" 
+                    className="h-10 text-xs bg-muted/30 border-transparent focus:bg-background focus:border-blue-500/20 rounded-xl transition-all"
+                    value={gladiatorForm.blue.kontingen}
+                    onChange={(e) => setGladiatorForm(prev => ({ ...prev, blue: { ...prev.blue, kontingen: e.target.value } }))}
+                  />
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="p-8 bg-muted/30 border-t border-foreground/5 flex items-center justify-between gap-6">
-              <Button 
-                variant="ghost" 
-                className="rounded-2xl h-14 px-8 text-sm font-bold opacity-60 hover:opacity-100 hover:bg-background transition-all" 
-                onClick={() => setGladiatorDialogOpen(false)}
-              >
-                Batalkan
-              </Button>
-              <Button 
-                className="rounded-2xl h-14 px-10 flex-1 lg:flex-none font-black uppercase tracking-[0.2em] shadow-[0_20px_40px_-12px_rgba(var(--primary),0.4)] transition-all hover:scale-[1.03] active:scale-[0.98] bg-primary hover:bg-primary/90" 
-                disabled={saving || !gladiatorForm.red.nama || !gladiatorForm.blue.nama || !gladiatorForm.arena_id}
-                onClick={handleCreateGladiator}
-              >
-                {saving ? (
-                  <Loader2 className="h-5 w-5 animate-spin mr-3" />
-                ) : (
-                  <Zap className="h-5 w-5 mr-3 fill-current" />
-                )}
-                Konfirmasi Pertandingan
-              </Button>
-            </DialogFooter>
-          </motion.div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase opacity-50 ml-1">Pilih Arena</Label>
+                <Select value={gladiatorForm.arena_id} onValueChange={(val) => setGladiatorForm(prev => ({ ...prev, arena_id: val }))}>
+                  <SelectTrigger className="h-11 rounded-xl bg-background border-foreground/10 focus:ring-primary/20">
+                    <SelectValue placeholder="Pilih Arena" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {arenas.map(a => (
+                      <SelectItem key={a.id} value={String(a.id)} className="rounded-lg">{a.nama}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase opacity-50 ml-1">Nomor Partai (Opsional)</Label>
+                <Input 
+                  placeholder="Contoh: 101" 
+                  className="h-11 rounded-xl bg-background border-foreground/10 focus:ring-primary/20"
+                  value={gladiatorForm.bout_number}
+                  onChange={(e) => setGladiatorForm(prev => ({ ...prev, bout_number: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 bg-muted/20 border-t border-foreground/5 gap-3">
+            <Button 
+              variant="ghost" 
+              className="rounded-xl h-12 px-6" 
+              onClick={() => setGladiatorDialogOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button 
+              className="rounded-xl h-12 px-8 flex-1 md:flex-none font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+              disabled={saving || !gladiatorForm.red.nama || !gladiatorForm.blue.nama || !gladiatorForm.arena_id}
+              onClick={handleCreateGladiator}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              Konfirmasi Match
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </main>
