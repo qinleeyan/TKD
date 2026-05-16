@@ -736,7 +736,6 @@ export default function MatchesPage() {
       const isHadir = data?.is_checked_in;
       const athleteId = parseInt(data.id || data.athlete_id);
 
-      // 🛡️ Only show toast for the initial fast-feedback broadcast
       if (isHadir && !data?.final_sync) {
         toast.success(`${data.nama || 'Atlet'} (${data.kontingen || 'Umum'}) sudah hadir!`, {
           id: `athlete-checkin-${athleteId}`,
@@ -745,58 +744,54 @@ export default function MatchesPage() {
         });
       }
 
-      // ⚡ REALTIME STATE UPDATE (No API Fetch needed)
-      // 1. Update Athletes list
       setAthletes(prev => (Array.isArray(prev) ? prev : []).map(a => a.id === athleteId ? { ...a, is_checked_in: isHadir } : a));
-
-      // 2. Update Matches list
+      
       setMatches(prev => (Array.isArray(prev) ? prev : []).map(m => ({
         ...m,
         participants: (m.participants || []).map(p =>
-          p.athlete === athleteId || p.athlete_detail?.id === athleteId
+          (p.athlete === athleteId || p.athlete_detail?.id === athleteId)
             ? { ...p, athlete_detail: p.athlete_detail ? { ...p.athlete_detail, is_checked_in: isHadir } : p.athlete_detail }
             : p
         )
       })));
 
-      // 3. Update Groups list (Updating 'athletes' key which is used by GroupCard)
       setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => ({
         ...g,
-        athletes: (g.athletes || []).map(a =>
-          a.id === athleteId ? { ...a, is_checked_in: isHadir } : a
-        )
+        athletes: (g.athletes || []).map(a => a.id === athleteId ? { ...a, is_checked_in: isHadir } : a)
       })));
+      return;
     }
 
     if (event === "athlete_created" && data?.id) {
-      toast.info(`📢 ${data.nama} (${data.kontingen || 'UMUM'}) baru saja mendaftar!`, {
+      toast.info(`📢 ${data.nama} baru saja mendaftar!`, {
         id: `created-${data.id}`,
-        description: `Kategori: ${data.sabuk_display || 'Peserta'}`,
+        description: `Kontingen: ${data.kontingen || 'Umum'}`,
         duration: 5000,
       });
       setAthletes(prev => {
-        const exists = prev.find(a => a.id === data.id);
-        if (exists) return prev;
-        return [...prev, data];
+        const results = Array.isArray(prev) ? prev : [];
+        if (results.find(a => a.id === data.id)) return results;
+        return [...results, data];
       });
+      return;
     }
 
     if (event === "athlete_updated" && data?.id) {
-      setAthletes(prev => prev.map(a => a.id === data.id ? { ...a, ...data } : a));
-      
-      // Also update in groups if exists
-      setGroups(prev => prev.map(g => ({
+      setAthletes(prev => (Array.isArray(prev) ? prev : []).map(a => a.id === data.id ? { ...a, ...data } : a));
+      setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => ({
         ...g,
-        athletes: g.athletes.map(a => a.id === data.id ? { ...a, ...data } : a)
+        athletes: (g.athletes || []).map(a => a.id === data.id ? { ...a, ...data } : a)
       })));
+      return;
     }
 
     if (event === "athlete_deleted" && data?.id) {
-      setAthletes(prev => prev.filter(a => a.id !== data.id));
-      setGroups(prev => prev.map(g => ({
+      setAthletes(prev => (Array.isArray(prev) ? prev : []).filter(a => a.id !== data.id));
+      setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => ({
         ...g,
-        athletes: g.athletes.filter(a => a.id !== data.id)
+        athletes: (g.athletes || []).filter(a => a.id !== data.id)
       })));
+      return;
     }
 
     if (event === "match_finished") {
