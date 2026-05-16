@@ -7,7 +7,7 @@ import { fetchWithAuth } from "@/lib/api";
 import { 
   Users, Trophy, Activity, MessageSquare, 
   ChevronRight, ChevronLeft, Send, Loader2, Trash2,
-  MessageCircle
+  MessageCircle, Play, CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
