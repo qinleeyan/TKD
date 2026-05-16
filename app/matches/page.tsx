@@ -310,6 +310,10 @@ export default function MatchesPage() {
   const [matchTotalPages, setMatchTotalPages] = useState(1);
   const [groupPage, setGroupPage] = useState(1);
   const [groupTotalPages, setGroupTotalPages] = useState(1);
+  const [isGroupsLoading, setIsGroupsLoading] = useState(true);
+  const [isAthletesLoading, setIsAthletesLoading] = useState(true);
+  const [isRoundsLoading, setIsRoundsLoading] = useState(true);
+  const [isMatchesLoading, setIsMatchesLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading) {
@@ -512,6 +516,7 @@ export default function MatchesPage() {
 
   const loadGroups = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    setIsGroupsLoading(true);
     try {
       let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&page=${groupPage}&sort_by=${sortBy}`;
       if (mainSearch) url += `&search=${encodeURIComponent(mainSearch)}`;
@@ -528,11 +533,13 @@ export default function MatchesPage() {
       toast.error("Gagal memuat kelompok.");
     } finally {
       if (!silent) setLoading(false);
+      setIsGroupsLoading(false);
     }
   }, [selectedCategory, normalizeGroup, groupPage, mainSearch, mainGenderFilter, sortBy]);
 
   const loadMatches = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    setIsMatchesLoading(true);
     try {
       let url = `/matches/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&page=${matchPage}`;
       if (matchSearch) url += `&search=${encodeURIComponent(matchSearch)}`;
@@ -549,11 +556,13 @@ export default function MatchesPage() {
       toast.error("Gagal memuat match.");
     } finally {
       if (!silent) setLoading(false);
+      setIsMatchesLoading(false);
     }
   }, [selectedCategory, matchPage, matchSearch, matchStatusFilter]);
 
   const loadRounds = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    setIsRoundsLoading(true);
     try {
       const res = await fetchWithAuth(`/matches/rounds/?tournament=${TOURNAMENT_ID}&match_category=${selectedCategory}`);
       if (res.ok) {
@@ -565,10 +574,12 @@ export default function MatchesPage() {
       toast.error("Gagal memuat ronde.");
     } finally {
       if (!silent) setLoading(false);
+      setIsRoundsLoading(false);
     }
   }, [selectedCategory]);
 
   const loadAthletes = useCallback(async () => {
+    setIsAthletesLoading(true);
     try {
       const res = await fetchWithAuth(`/athletes/?tournament=${TOURNAMENT_ID}`);
       if (res.ok) {
@@ -578,6 +589,8 @@ export default function MatchesPage() {
       }
     } catch (e) {
       console.error("Gagal memuat atlet:", e);
+    } finally {
+      setIsAthletesLoading(false);
     }
   }, []);
 
@@ -1564,7 +1577,7 @@ export default function MatchesPage() {
                 </div>
               </div>
 
-              {loading ? (
+              {(loading || isGroupsLoading) ? (
                 <div className="grid gap-3 grid-cols-1">
                   {[...Array(5)].map((_, i) => (
                     <div key={i} className="rounded-lg border border-foreground/10 p-3 space-y-3 animate-pulse bg-background/50">
@@ -1811,7 +1824,18 @@ export default function MatchesPage() {
                 </div>
               </div>
               <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredGroups.map((group, index) => {
+                {(loading || isGroupsLoading) ? (
+                  [...Array(6)].map((_, i) => (
+                    <Card key={i} className="rounded-lg border-foreground/10 bg-background/70 overflow-hidden animate-pulse">
+                      <div className="h-40 bg-foreground/5" />
+                    </Card>
+                  ))
+                ) : filteredGroups.length === 0 ? (
+                  <div className="col-span-full py-20 text-center">
+                    <p className="text-muted-foreground">Belum ada bracket yang tersedia.</p>
+                  </div>
+                ) : (
+                  filteredGroups.map((group, index) => {
                   const key = groupKey(group, index);
                   return (
                     <Card key={`bracket-${key}`} className="rounded-lg border-foreground/10 bg-background/70 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
@@ -1839,7 +1863,8 @@ export default function MatchesPage() {
                       </CardContent>
                     </Card>
                   );
-                })}
+                })
+                )}
               </div>
             </TabsContent>
 
@@ -2059,7 +2084,21 @@ export default function MatchesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAthleteList.length === 0 ? (
+                    {(loading || isAthletesLoading) ? (
+                      [...Array(5)].map((_, i) => (
+                        <TableRow key={i} className="animate-pulse">
+                          <TableCell colSpan={5} className="py-8">
+                            <div className="flex gap-4">
+                              <div className="h-10 w-10 bg-foreground/5 rounded-full" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 w-1/3 bg-foreground/10 rounded" />
+                                <div className="h-3 w-1/4 bg-foreground/5 rounded" />
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : filteredAthleteList.length === 0 ? (
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
