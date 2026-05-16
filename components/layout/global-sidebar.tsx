@@ -126,76 +126,93 @@ export function GlobalSidebar() {
 }
 
 function StatsView() {
-  const [stats, setStats] = useState({ athletes: 0, matches: 0, checkedIn: 0 });
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
-    async function loadStats() {
+    const fetchData = async () => {
       try {
-        const [athletesRes, matchesRes] = await Promise.all([
-          fetchWithAuth("/athletes/"),
-          fetchWithAuth("/matches/")
-        ]);
-        
-        if (athletesRes.ok && matchesRes.ok) {
-          const athletes = await athletesRes.json();
-          const matchesData = await matchesRes.json();
-          
-          setStats({
-            athletes: athletes.count || 0,
-            matches: matchesData.count || 0,
-            checkedIn: athletes.results?.filter((a: any) => a.is_checked_in).length || 0
-          });
-        }
+        const summary = await fetchWithAuth("/matches/summary/?tournament=1");
+        setStats(summary);
       } catch (err) {
-        console.error("Error loading stats:", err);
-      } finally {
-        setLoading(false);
+        console.error("Failed to fetch stats:", err);
       }
-    }
-    loadStats();
-    // Refresh stats every minute
-    const interval = setInterval(loadStats, 60000);
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
+  if (!stats) {
     return <div className="p-6 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
-    <div className="p-6 flex flex-col gap-6">
-      <div>
-        <h3 className="font-display text-sm text-muted-foreground uppercase tracking-widest mb-4">Tournament Health</h3>
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-foreground/5 border border-foreground/10 flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-background shadow-sm">
-              <Users className="w-5 h-5" />
+    <div className="p-4 sm:p-6 space-y-8 animate-in fade-in slide-in-from-left-4 duration-500">
+      <div className="space-y-4">
+        <h2 className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] px-1">
+          Participant Overview
+        </h2>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex items-center gap-4 p-4 bg-foreground/5 rounded-2xl border border-foreground/10 group transition-all hover:bg-foreground/[0.08] hover:border-blue-500/20 shadow-sm hover:shadow-blue-500/5">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 transition-transform group-hover:scale-110">
+              <Users className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-2xl font-display">{stats.athletes}</p>
-              <p className="text-xs text-muted-foreground">Total Athletes</p>
+              <div className="text-2xl font-bold tracking-tight font-display">{stats.total_athletes}</div>
+              <div className="text-xs text-foreground/50 font-medium">Total Atlet</div>
             </div>
           </div>
-          <div className="p-4 rounded-xl bg-foreground/5 border border-foreground/10 flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-background shadow-sm">
-              <Activity className="w-5 h-5 text-green-500" />
+
+          <div className="flex items-center gap-4 p-4 bg-foreground/5 rounded-2xl border border-foreground/10 group transition-all hover:bg-foreground/[0.08] hover:border-emerald-500/20 shadow-sm hover:shadow-emerald-500/5">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 transition-transform group-hover:scale-110">
+              <Activity className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-2xl font-display">{stats.checkedIn}</p>
-              <p className="text-xs text-muted-foreground">Checked In</p>
-            </div>
-          </div>
-          <div className="p-4 rounded-xl bg-foreground/5 border border-foreground/10 flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-background shadow-sm">
-              <Trophy className="w-5 h-5 text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-2xl font-display">{stats.matches}</p>
-              <p className="text-xs text-muted-foreground">Total Matches</p>
+              <div className="text-2xl font-bold tracking-tight font-display">{stats.checked_in}</div>
+              <div className="text-xs text-foreground/50 font-medium">Checked In (Hadir)</div>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] px-1">
+          Match Progress
+        </h2>
+        <div className="space-y-3">
+          {/* Main Stats Card */}
+          <div className="flex items-center gap-4 p-4 bg-foreground/5 rounded-2xl border border-foreground/10 group transition-all hover:bg-foreground/[0.08] hover:border-amber-500/20 shadow-sm hover:shadow-amber-500/5">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 transition-transform group-hover:scale-110">
+              <Trophy className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold tracking-tight font-display">{stats.total_matches}</div>
+              <div className="text-xs text-foreground/50 font-medium">Total Partai</div>
+            </div>
+          </div>
+
+          {/* Detailed Status Grid */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-3 bg-blue-500/5 rounded-2xl border border-blue-500/10 text-center transition-all hover:bg-blue-500/10">
+              <div className="text-lg font-bold text-blue-500 font-display leading-tight">{stats.ongoing}</div>
+              <div className="text-[9px] text-blue-500/70 font-bold uppercase tracking-wider">Main</div>
+            </div>
+            <div className="p-3 bg-amber-500/5 rounded-2xl border border-amber-500/10 text-center transition-all hover:bg-amber-500/10">
+              <div className="text-lg font-bold text-amber-500 font-display leading-tight">{stats.pending}</div>
+              <div className="text-[9px] text-amber-500/70 font-bold uppercase tracking-wider">Sisa</div>
+            </div>
+            <div className="p-3 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 text-center transition-all hover:bg-emerald-500/10">
+              <div className="text-lg font-bold text-emerald-500 font-display leading-tight">{stats.finished}</div>
+              <div className="text-[9px] text-emerald-500/70 font-bold uppercase tracking-wider">Selesai</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 py-3 bg-foreground/[0.02] border border-dashed border-foreground/10 rounded-xl">
+        <p className="text-[9px] text-center text-foreground/40 font-medium italic">
+          Data diperbarui otomatis setiap 10 detik.
+        </p>
       </div>
     </div>
   );
