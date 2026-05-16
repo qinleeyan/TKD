@@ -541,7 +541,7 @@ export default function MatchesPage() {
 
     // Client-side category filtering
     if (selectedCategory !== "all") {
-      const catVal = selectedCategory === "1" ? 1 : 0;
+      const catVal = (selectedCategory === "poomsae" || selectedCategory === "1") ? 1 : 0;
       result = result.filter(g => g && g.match_category === catVal);
     }
 
@@ -570,7 +570,7 @@ export default function MatchesPage() {
       });
     }
     return result;
-  }, [groups, mainSearch, mainGenderFilter]);
+  }, [groups, mainSearch, mainGenderFilter, selectedCategory]);
 
   const groupedMatches = useMemo(() => {
     return matches.reduce<Record<string, MatchRow[]>>((acc, match) => {
