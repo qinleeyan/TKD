@@ -261,7 +261,8 @@ function normalizeGroup(raw: any, index: number): GroupCard {
     id: raw.id,
     group_id: raw.group_id ?? raw.id ?? index + 1,
     group_name: raw.group_name || raw.category_name || `Grup ${index + 1}`,
-    match_category: (raw.match_category === 1 || raw.match_category === "1" || raw.match_category === "poomsae") ? "poomsae" : "kyourugi",
+    match_category: raw.match_category,
+    category_label: (raw.match_category === 1 || raw.match_category === "1" || raw.match_category === "poomsae") ? "poomsae" : "kyourugi",
     gender: Number(raw.gender ?? athletes[0]?.gender ?? 0),
     gender_display: raw.gender_display || genderLabel(Number(raw.gender ?? athletes[0]?.gender ?? 0)),
     sort_order: Number(raw.sort_order ?? index + 1),
@@ -481,7 +482,7 @@ export default function MatchesPage() {
         });
         setRedSearchQuery("");
         setBlueSearchQuery("");
-        // loadMatches(true); // Dihapus biar full real-time dari WebSocket
+        setGladiatorDialogOpen(false);
       } else {
         const err = await res.json();
         toast.error(err.error || "Gagal membuat match.");
@@ -543,8 +544,14 @@ export default function MatchesPage() {
     if (selectedCategory !== "all") {
       result = result.filter(g => {
         if (!g) return false;
-        const groupCat = (g.match_category === "poomsae" || g.match_category === 1 || g.match_category === "1") ? "poomsae" : "kyourugi";
-        return groupCat === selectedCategory;
+        // Match either ID or label
+        const isPoomsaeGroup = (g.match_category === "poomsae" || g.match_category === 1 || g.match_category === "1");
+        const isKyourugiGroup = !isPoomsaeGroup;
+        
+        if (selectedCategory === "0" || selectedCategory === "kyourugi") return isKyourugiGroup;
+        if (selectedCategory === "1" || selectedCategory === "poomsae") return isPoomsaeGroup;
+        
+        return String(g.match_category) === String(selectedCategory);
       });
     }
 
@@ -558,16 +565,18 @@ export default function MatchesPage() {
       result = result.filter(g => {
         if (!g) return false;
         try {
-          const nameMatch = (g.group_name || g.category_name || "").toLowerCase().includes(query);
-          const athleteMatch = (g.athletes || g.assignments || []).some(a => {
-            const athleteName = a.nama || a.athlete_detail?.nama || "";
-            const athleteKlub = a.klub || a.athlete_detail?.klub || "";
-            return String(athleteName).toLowerCase().includes(query) || 
-                   String(athleteKlub).toLowerCase().includes(query);
+          const gName = (g.group_name || g.category_name || "").toLowerCase();
+          const nameMatch = gName.includes(query);
+          
+          const gAthletes = Array.isArray(g.athletes) ? g.athletes : [];
+          const athleteMatch = gAthletes.some((a: any) => {
+            const aName = (a.nama || a.name || "").toLowerCase();
+            const aKlub = (a.klub || a.kontingen || "").toLowerCase();
+            return aName.includes(query) || aKlub.includes(query);
           });
+          
           return nameMatch || athleteMatch;
         } catch (e) {
-          console.error("Group filter error:", e, g);
           return false;
         }
       });
@@ -588,11 +597,20 @@ export default function MatchesPage() {
     if (!silent) setLoading(true);
     setIsGroupsLoading(true);
     try {
-      // Use a larger page size to enable better local filtering and prevent delay
       const matchFlag = withMatches ? "1" : "0";
-      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=all&gender=all&page_size=500&include_matches=${matchFlag}`;
+      const params = new URLSearchParams({
+        tournament_id: TOURNAMENT_ID,
+        category: selectedCategory,
+        gender: mainGenderFilter,
+        page_size: "200",
+        include_matches: matchFlag
+      });
       
-      const res = await fetchWithAuth(url);
+      if (mainSearch) {
+        params.append("search", mainSearch);
+      }
+      
+      const res = await fetchWithAuth(`/matches/weight-classes/?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         const results = Array.isArray(data) ? data : (data.results || []);
@@ -606,7 +624,7 @@ export default function MatchesPage() {
       if (!silent) setLoading(false);
       setIsGroupsLoading(false);
     }
-  }, [selectedCategory, groupPage, mainGenderFilter]);
+  }, [selectedCategory, groupPage, mainGenderFilter, mainSearch]);
 
   const loadMatches = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -771,6 +789,22 @@ export default function MatchesPage() {
         }
         return g;
       }));
+      return;
+    }
+
+    if (event === "match_created" && data?.id) {
+      setMatches(prev => {
+        if (prev.find(m => m.id === data.id)) return prev;
+        return [data, ...prev];
+      });
+      return;
+    }
+
+    if (event === "group_created" && data?.id) {
+      setGroups(prev => {
+        if (prev.find(g => g.id === data.id)) return prev;
+        return [normalizeGroup(data, 0), ...prev];
+      });
       return;
     }
 
