@@ -748,6 +748,26 @@ export default function MatchesPage() {
       return;
     }
 
+    if (["athlete_created", "athlete_updated"].includes(event) && data) {
+      setAthletes(prev => {
+        const results = Array.isArray(prev) ? prev : [];
+        const exists = results.find(a => a.id === data.id);
+        if (exists) {
+          return results.map(a => a.id === data.id ? { ...a, ...data } : a);
+        }
+        if (event === "athlete_created") {
+          return [data, ...results];
+        }
+        return results;
+      });
+      return;
+    }
+
+    if (event === "athlete_deleted" && data?.id) {
+      setAthletes(prev => prev.filter(a => a.id !== data.id));
+      return;
+    }
+
     if (event === "athlete_checkin") {
       const isHadir = data?.is_checked_in;
       const athleteId = parseInt(data.id || data.athlete_id);
