@@ -1953,8 +1953,11 @@ export default function MatchesPage() {
                               <span className="font-bold text-sm leading-tight">{athlete.nama}</span>
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge
-                                  className={`text-[8px] h-5 px-2 uppercase font-bold shadow-none border-none ${athlete.gender === 0 ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
-                                    }`}
+                                  className={`text-[8px] h-5 px-2 uppercase font-bold shadow-none border-none ${
+                                    athlete.gender === 0 
+                                      ? "bg-blue-500 text-white" 
+                                      : "bg-pink-500 text-white"
+                                  }`}
                                 >
                                   {athlete.gender === 0 ? "Putra" : "Putri"}
                                 </Badge>
