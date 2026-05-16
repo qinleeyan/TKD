@@ -446,8 +446,8 @@ export default function MatchesPage() {
   }, [athletes, blueSearchQuery]);
 
   const handleCreateGladiator = async () => {
-    if (!gladiatorForm.red.nama || !gladiatorForm.blue.nama || !gladiatorForm.arena_id) {
-      toast.error("Nama atlet (Merah & Biru) dan Arena wajib diisi.");
+    if (!gladiatorForm.red.nama || !gladiatorForm.blue.nama) {
+      toast.error("Nama atlet (Merah & Biru) wajib diisi.");
       return;
     }
 
@@ -3044,31 +3044,6 @@ export default function MatchesPage() {
                     onChange={(e) => setGladiatorForm(prev => ({ ...prev, blue: { ...prev.blue, kontingen: e.target.value } }))}
                   />
                 </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase opacity-50 ml-1">Pilih Arena</Label>
-                <Select value={gladiatorForm.arena_id} onValueChange={(val) => setGladiatorForm(prev => ({ ...prev, arena_id: val }))}>
-                  <SelectTrigger className="h-11 rounded-xl bg-background border-foreground/10 focus:ring-primary/20">
-                    <SelectValue placeholder="Pilih Arena" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {arenas.map(a => (
-                      <SelectItem key={a.id} value={String(a.id)} className="rounded-lg">{a.nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase opacity-50 ml-1">Nomor Partai (Opsional)</Label>
-                <Input 
-                  placeholder="Contoh: 101" 
-                  className="h-11 rounded-xl bg-background border-foreground/10 focus:ring-primary/20"
-                  value={gladiatorForm.bout_number}
-                  onChange={(e) => setGladiatorForm(prev => ({ ...prev, bout_number: e.target.value }))}
-                />
               </div>
             </div>
           </div>
