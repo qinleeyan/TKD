@@ -50,10 +50,10 @@ export function GlobalSidebar() {
           }}
         >
           <MessageCircle className="h-5 w-5" />
-          {hasUnread && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 z-[10001]">
+          {hasUnread && isCollapsed && (
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 z-[10001]">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-background"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600 border-2 border-background"></span>
             </span>
           )}
         </Button>
@@ -481,9 +481,9 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
                   </span>
                 </div>
                 <div
-                  className={`max-w-[88%] px-4 py-2.5 rounded-2xl text-sm shadow-md transition-all ${
+                  className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm shadow-sm transition-all break-words whitespace-pre-wrap ${
                     isMe
-                      ? "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
+                      ? "bg-primary text-primary-foreground rounded-tr-none shadow-primary/10"
                       : "bg-foreground/5 text-foreground rounded-tl-none border border-foreground/10"
                   }`}
                 >
@@ -497,18 +497,30 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
       </div>
 
       {/* Chat Input Area */}
-      <div className="p-4 bg-background border-t border-foreground/10 pb-[env(safe-area-inset-bottom,16px)]">
+      <div className="p-4 sm:p-6 bg-background border-t border-foreground/10 pb-10 sm:pb-12 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         {/* Typing Indicator with Animation */}
         {typingUsers.size > 0 && (
-          <div className="px-4 py-2 text-[10px] sm:text-xs text-blue-600 animate-pulse italic flex items-center gap-2">
-            <div className="flex gap-1">
-              <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-              <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-              <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce"></span>
+          <div className="px-4 py-3 flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-300">
+            <div className="flex shrink-0 -space-x-2">
+              {Array.from(typingUsers).slice(0, 3).map((u) => (
+                <div key={u} className="h-6 w-6 rounded-full bg-blue-100 border-2 border-background flex items-center justify-center overflow-hidden">
+                  <span className="text-[10px] font-bold text-blue-600 uppercase">{u.slice(0, 1)}</span>
+                </div>
+              ))}
             </div>
-            <span className="font-bold">
-              {Array.from(typingUsers).join(", ")}
-            </span> sedang mengetik...
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-blue-600 italic">
+                  {Array.from(typingUsers).join(", ")}
+                </span>
+                <div className="flex gap-1 items-center h-2">
+                  <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                  <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                  <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce"></span>
+                </div>
+              </div>
+              <span className="text-[9px] text-blue-400/80 leading-none">sedang mengetik...</span>
+            </div>
           </div>
         )}
         
