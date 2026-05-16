@@ -507,29 +507,55 @@ export default function MatchesPage() {
       result = result.filter(m => m.status === matchStatusFilter);
     }
     if (matchSearch) {
-      const query = matchSearch.toLowerCase();
-      result = result.filter(m => 
-        (m.bout_number && String(m.bout_number).toLowerCase().includes(query)) ||
-        (m.match_number && String(m.match_number).toLowerCase().includes(query)) ||
-        (m.arena_name && m.arena_name.toLowerCase().includes(query)) ||
-        (m.participants || []).some(p => (p.athlete_detail?.nama || "").toLowerCase().includes(query))
-      );
+      const query = String(matchSearch).toLowerCase();
+      result = result.filter(m => {
+        try {
+          const boutStr = m.bout_number ? String(m.bout_number).toLowerCase() : "";
+          const matchNumStr = m.match_number ? String(m.match_number).toLowerCase() : "";
+          const arenaStr = m.arena_name ? String(m.arena_name).toLowerCase() : "";
+          const groupStr = m.group_name ? String(m.group_name).toLowerCase() : "";
+          
+          const hasAthleteMatch = (m.participants || []).some(p => {
+            const athleteName = p.athlete_detail?.nama || p.athlete_name || "";
+            return String(athleteName).toLowerCase().includes(query);
+          });
+
+          return boutStr.includes(query) || 
+                 matchNumStr.includes(query) || 
+                 arenaStr.includes(query) || 
+                 groupStr.includes(query) ||
+                 hasAthleteMatch;
+        } catch (e) {
+          console.error("Filter error:", e, m);
+          return false;
+        }
+      });
     }
     return result;
   }, [matches, matchSearch, matchStatusFilter]);
 
   const filteredGroups = useMemo(() => {
-    let result = groups;
+    let result = Array.isArray(groups) ? groups : [];
     if (mainGenderFilter !== "all") {
       result = result.filter(g => String(g.gender) === mainGenderFilter);
     }
     if (mainSearch) {
-      const query = mainSearch.toLowerCase();
-      result = result.filter(g => 
-        (g.category_name || "").toLowerCase().includes(query) || 
-        (g.assignments || []).some(a => (a.athlete_detail?.nama || "").toLowerCase().includes(query)) ||
-        (g.assignments || []).some(a => (a.athlete_detail?.klub || "").toLowerCase().includes(query))
-      );
+      const query = String(mainSearch).toLowerCase();
+      result = result.filter(g => {
+        try {
+          const nameMatch = (g.group_name || g.category_name || "").toLowerCase().includes(query);
+          const athleteMatch = (g.athletes || g.assignments || []).some(a => {
+            const athleteName = a.nama || a.athlete_detail?.nama || "";
+            const athleteKlub = a.klub || a.athlete_detail?.klub || "";
+            return String(athleteName).toLowerCase().includes(query) || 
+                   String(athleteKlub).toLowerCase().includes(query);
+          });
+          return nameMatch || athleteMatch;
+        } catch (e) {
+          console.error("Group filter error:", e, g);
+          return false;
+        }
+      });
     }
     return result;
   }, [groups, mainSearch, mainGenderFilter]);
@@ -554,7 +580,7 @@ export default function MatchesPage() {
       if (res.ok) {
         const data = await res.json();
         const results = Array.isArray(data) ? data : (data.results || []);
-        setGroups(results);
+        setGroups(results.map((item: any, index: number) => normalizeGroup(item, index)));
         if (data.count) setGroupTotalPages(Math.ceil(data.count / 200));
       }
     } catch {
