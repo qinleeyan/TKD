@@ -476,7 +476,7 @@ export default function MatchesPage() {
         });
         setRedSearchQuery("");
         setBlueSearchQuery("");
-        loadMatches(true);
+        // loadMatches(true); // Dihapus biar full real-time dari WebSocket
       } else {
         const err = await res.json();
         toast.error(err.error || "Gagal membuat match.");
