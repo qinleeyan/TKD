@@ -358,8 +358,17 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
     };
   }, []);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+    }
+  }, [inputMessage]);
+
+  const handleSendMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!inputMessage.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
     wsRef.current.send(JSON.stringify({
@@ -367,6 +376,7 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
       content: inputMessage.trim()
     }));
     setInputMessage("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
     // Notify stopped typing immediately on send
     sendTypingStatus(false);
   };
@@ -511,18 +521,25 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
       <div className="p-4 sm:p-5 bg-background border-t border-foreground/10 pb-6 sm:pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         {/* Input Area */}
         
-        <form onSubmit={handleSendMessage} className="flex gap-2">
-          <input
-            type="text"
+        <form onSubmit={handleSendMessage} className="flex items-end gap-2">
+          <textarea
+            ref={inputRef}
+            rows={1}
             value={inputMessage}
             onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
             placeholder="Tulis pesan..."
-            className="flex-1 px-4 py-2 bg-foreground/5 border border-foreground/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="flex-1 px-4 py-2.5 bg-foreground/5 border border-foreground/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none min-h-[40px] max-h-[120px] transition-all"
           />
           <button
             type="submit"
             disabled={!inputMessage.trim()}
-            className="p-2 bg-primary text-primary-foreground rounded-xl disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
+            className="p-2.5 bg-primary text-primary-foreground rounded-xl disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0 mb-[1px]"
           >
             <Send className="w-5 h-5" />
           </button>
