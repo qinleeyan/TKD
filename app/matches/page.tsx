@@ -547,39 +547,36 @@ export default function MatchesPage() {
     if (!silent) setLoading(true);
     setIsGroupsLoading(true);
     try {
-      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&page=${groupPage}&sort_by=${sortBy}`;
-      if (mainSearch) url += `&search=${encodeURIComponent(mainSearch)}`;
-      if (mainGenderFilter !== "all") url += `&gender=${mainGenderFilter}`;
-
+      // Use a larger page size to enable better local filtering and prevent delay
+      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&match_category=${selectedCategory}&gender=${mainGenderFilter}&page_size=200`;
+      
       const res = await fetchWithAuth(url);
       if (res.ok) {
         const data = await res.json();
         const results = Array.isArray(data) ? data : (data.results || []);
-        setGroups(results.map((item: any, index: number) => normalizeGroup(item, index)));
-        if (data.count) setGroupTotalPages(Math.ceil(data.count / 20));
+        setGroups(results);
+        if (data.count) setGroupTotalPages(Math.ceil(data.count / 200));
       }
     } catch {
-      toast.error("Gagal memuat kelompok.");
+      toast.error("Gagal memuat grup.");
     } finally {
       if (!silent) setLoading(false);
       setIsGroupsLoading(false);
     }
-  }, [selectedCategory, normalizeGroup, groupPage, mainSearch, mainGenderFilter, sortBy]);
+  }, [selectedCategory, groupPage, mainGenderFilter]);
 
   const loadMatches = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setIsMatchesLoading(true);
     try {
-      let url = `/matches/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&page=${matchPage}`;
-      if (matchSearch) url += `&search=${encodeURIComponent(matchSearch)}`;
-      if (matchStatusFilter !== "all") url += `&status=${matchStatusFilter}`;
-
+      let url = `/matches/matches/?tournament=${TOURNAMENT_ID}&match_category=${selectedCategory}&status=${matchStatusFilter}&page_size=200`;
+      
       const res = await fetchWithAuth(url);
       if (res.ok) {
         const data = await res.json();
         const results = Array.isArray(data) ? data : (data.results || []);
         setMatches(results);
-        if (data.count) setMatchTotalPages(Math.ceil(data.count / 20));
+        if (data.count) setMatchTotalPages(Math.ceil(data.count / 200));
       }
     } catch {
       toast.error("Gagal memuat match.");
@@ -587,7 +584,7 @@ export default function MatchesPage() {
       if (!silent) setLoading(false);
       setIsMatchesLoading(false);
     }
-  }, [selectedCategory, matchPage, matchSearch, matchStatusFilter]);
+  }, [selectedCategory, matchPage, matchStatusFilter]);
 
   const loadRounds = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -639,11 +636,11 @@ export default function MatchesPage() {
   // --- Data Loading Optimization (Targeted Fetching) ---
   useEffect(() => {
     loadGroups(true);
-  }, [selectedCategory, sortBy, groupPage, mainSearch, mainGenderFilter, loadGroups]);
+  }, [selectedCategory, sortBy, groupPage, mainGenderFilter, loadGroups]);
 
   useEffect(() => {
     loadMatches(true);
-  }, [selectedCategory, matchPage, matchSearch, matchStatusFilter, loadMatches]);
+  }, [selectedCategory, matchPage, matchStatusFilter, loadMatches]);
 
   useEffect(() => {
     setLoading(true);
