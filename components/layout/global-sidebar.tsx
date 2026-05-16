@@ -147,79 +147,106 @@ function StatsView() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 animate-in fade-in slide-in-from-left-4 duration-500">
-      <h2 className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] px-1 mb-2">
-        Tournament Health
-      </h2>
-      
-      {/* Total Athletes */}
-      <div className="flex items-center gap-4 p-4 bg-foreground/5 rounded-2xl border border-foreground/10 group transition-all hover:bg-foreground/[0.08] hover:border-blue-500/20 shadow-sm hover:shadow-blue-500/5">
-        <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 transition-transform group-hover:scale-110">
-          <Users className="w-6 h-6" />
-        </div>
-        <div>
-          <div className="text-2xl font-bold tracking-tight font-display leading-none mb-1">{stats.total_athletes}</div>
-          <div className="text-[11px] text-foreground/50 font-medium uppercase tracking-wider">Total Atlet</div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full bg-background animate-in fade-in duration-500">
+      <div className="p-4 sm:p-6 space-y-6 overflow-y-auto">
+        {/* Participation Section */}
+        <section className="space-y-3">
+          <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
+            Participation
+          </h2>
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl border border-foreground/5 transition-all hover:bg-secondary/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-semibold text-foreground/70">Total Atlet</span>
+              </div>
+              <span className="text-xl font-bold font-display">{stats.total_athletes}</span>
+            </div>
 
-      {/* Checked In */}
-      <div className="flex items-center gap-4 p-4 bg-foreground/5 rounded-2xl border border-foreground/10 group transition-all hover:bg-foreground/[0.08] hover:border-emerald-500/20 shadow-sm hover:shadow-emerald-500/5">
-        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 transition-transform group-hover:scale-110">
-          <Activity className="w-6 h-6" />
-        </div>
-        <div>
-          <div className="text-2xl font-bold tracking-tight font-display leading-none mb-1">{stats.checked_in}</div>
-          <div className="text-[11px] text-foreground/50 font-medium uppercase tracking-wider">Checked In</div>
-        </div>
-      </div>
-
-      {/* Total Matches */}
-      <div className="flex items-center gap-4 p-4 bg-foreground/5 rounded-2xl border border-foreground/10 group transition-all hover:bg-foreground/[0.08] hover:border-amber-500/20 shadow-sm hover:shadow-amber-500/5">
-        <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 transition-transform group-hover:scale-110">
-          <Trophy className="w-6 h-6" />
-        </div>
-        <div>
-          <div className="text-2xl font-bold tracking-tight font-display leading-none mb-1">{stats.total_matches}</div>
-          <div className="text-[11px] text-foreground/50 font-medium uppercase tracking-wider">Total Partai</div>
-        </div>
-      </div>
-
-      <div className="h-px bg-foreground/10 my-4 mx-2" />
-
-      {/* Ongoing Matches */}
-      <div className="flex items-center gap-4 p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 group transition-all hover:bg-blue-500/10 hover:border-blue-500/30 shadow-sm">
-        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-600 transition-transform group-hover:scale-110">
-          <div className="relative">
-            <Activity className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
-            </span>
+            <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl border border-foreground/5 transition-all hover:bg-secondary/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-semibold text-foreground/70">Check-in Hadir</span>
+              </div>
+              <span className="text-xl font-bold font-display text-emerald-600">{stats.checked_in}</span>
+            </div>
           </div>
-        </div>
-        <div>
-          <div className="text-2xl font-bold tracking-tight font-display leading-none mb-1 text-blue-700">{stats.ongoing}</div>
-          <div className="text-[11px] text-blue-600/70 font-bold uppercase tracking-wider">Sedang Tanding</div>
-        </div>
+        </section>
+
+        {/* Live Match Progress Section */}
+        <section className="space-y-3 pt-2">
+          <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
+            Live Match Progress
+          </h2>
+          <div className="grid gap-3">
+            {/* Total Matches - Primary Stat */}
+            <div className="flex items-center justify-between p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 transition-all hover:bg-amber-500/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <span className="text-xs font-semibold text-amber-900/70">Total Partai</span>
+              </div>
+              <span className="text-xl font-bold font-display text-amber-700">{stats.total_matches}</span>
+            </div>
+
+            {/* Live Stats Row */}
+            <div className="grid grid-cols-1 gap-3">
+              {/* Sedang Berlangsung */}
+              <div className="flex items-center justify-between p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 transition-all hover:bg-blue-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-600">
+                      <Play className="w-5 h-5 fill-current" />
+                    </div>
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-blue-900/70">Sedang Tanding</span>
+                </div>
+                <span className="text-xl font-bold font-display text-blue-700">{stats.ongoing}</span>
+              </div>
+
+              {/* Sisa Partai */}
+              <div className="flex items-center justify-between p-4 bg-foreground/[0.03] rounded-2xl border border-foreground/5 transition-all hover:bg-foreground/[0.05]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center text-muted-foreground">
+                    <Loader2 className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground/60">Sisa Partai</span>
+                </div>
+                <span className="text-xl font-bold font-display">{stats.pending}</span>
+              </div>
+
+              {/* Partai Selesai */}
+              <div className="flex items-center justify-between p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 transition-all hover:bg-emerald-500/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-semibold text-emerald-900/70">Partai Selesai</span>
+                </div>
+                <span className="text-xl font-bold font-display text-emerald-700">{stats.finished}</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* Pending Matches */}
-      <div className="flex items-center gap-4 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 group transition-all hover:bg-amber-500/10 hover:border-amber-500/30 shadow-sm">
-        <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600 transition-transform group-hover:scale-110">
-          <Loader2 className="w-6 h-6" />
+      {/* Sync Status Footer */}
+      <div className="mt-auto p-4 border-t border-foreground/5 bg-foreground/[0.01]">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">
+            Live Update Active • 10s
+          </p>
         </div>
-        <div>
-          <div className="text-2xl font-bold tracking-tight font-display leading-none mb-1 text-amber-700">{stats.pending}</div>
-          <div className="text-[11px] text-amber-600/70 font-bold uppercase tracking-wider">Sisa Partai</div>
-        </div>
-      </div>
-
-      {/* Footer Info */}
-      <div className="mt-6 px-4 py-3 bg-foreground/[0.02] border border-dashed border-foreground/10 rounded-xl">
-        <p className="text-[9px] text-center text-foreground/40 font-medium italic">
-          Data sinkron otomatis setiap 10 detik.
-        </p>
       </div>
     </div>
   );
