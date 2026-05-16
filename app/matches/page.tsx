@@ -548,7 +548,7 @@ export default function MatchesPage() {
     setIsGroupsLoading(true);
     try {
       // Use a larger page size to enable better local filtering and prevent delay
-      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&match_category=${selectedCategory}&gender=${mainGenderFilter}&page_size=200`;
+      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&gender=${mainGenderFilter}&page_size=200`;
       
       const res = await fetchWithAuth(url);
       if (res.ok) {
@@ -569,7 +569,7 @@ export default function MatchesPage() {
     if (!silent) setLoading(true);
     setIsMatchesLoading(true);
     try {
-      let url = `/matches/matches/?tournament=${TOURNAMENT_ID}&match_category=${selectedCategory}&status=${matchStatusFilter}&page_size=200`;
+      let url = `/matches/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&status=${matchStatusFilter}&page_size=200`;
       
       const res = await fetchWithAuth(url);
       if (res.ok) {
