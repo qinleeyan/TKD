@@ -261,7 +261,7 @@ function normalizeGroup(raw: any, index: number): GroupCard {
     id: raw.id,
     group_id: raw.group_id ?? raw.id ?? index + 1,
     group_name: raw.group_name || raw.category_name || `Grup ${index + 1}`,
-    match_category: (raw.match_category || "kyourugi") as Category,
+    match_category: (raw.match_category === 1 || raw.match_category === "1" || raw.match_category === "poomsae") ? "poomsae" : "kyourugi",
     gender: Number(raw.gender ?? athletes[0]?.gender ?? 0),
     gender_display: raw.gender_display || genderLabel(Number(raw.gender ?? athletes[0]?.gender ?? 0)),
     sort_order: Number(raw.sort_order ?? index + 1),
@@ -541,13 +541,16 @@ export default function MatchesPage() {
 
     // Client-side category filtering
     if (selectedCategory !== "all") {
-      const catVal = (selectedCategory === "poomsae" || selectedCategory === "1") ? 1 : 0;
-      result = result.filter(g => g && g.match_category == catVal);
+      result = result.filter(g => {
+        if (!g) return false;
+        const groupCat = (g.match_category === "poomsae" || g.match_category === 1 || g.match_category === "1") ? "poomsae" : "kyourugi";
+        return groupCat === selectedCategory;
+      });
     }
 
     // Client-side gender filtering
     if (mainGenderFilter !== "all") {
-      result = result.filter(g => g && g.gender == mainGenderFilter);
+      result = result.filter(g => g && String(g.gender) === String(mainGenderFilter));
     }
 
     if (mainSearch) {
