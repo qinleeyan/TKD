@@ -501,9 +501,38 @@ export default function MatchesPage() {
     setGroupPage(1);
   }, [mainSearch, mainGenderFilter, selectedCategory]);
 
-  const filteredMatches = matches;
+  const filteredMatches = useMemo(() => {
+    let result = matches;
+    if (matchStatusFilter !== "all") {
+      result = result.filter(m => m.status === matchStatusFilter);
+    }
+    if (matchSearch) {
+      const query = matchSearch.toLowerCase();
+      result = result.filter(m => 
+        (m.bout_number && String(m.bout_number).toLowerCase().includes(query)) ||
+        (m.match_number && String(m.match_number).toLowerCase().includes(query)) ||
+        (m.arena_name && m.arena_name.toLowerCase().includes(query)) ||
+        (m.participants || []).some(p => (p.athlete_name || "").toLowerCase().includes(query))
+      );
+    }
+    return result;
+  }, [matches, matchSearch, matchStatusFilter]);
 
-  const filteredGroups = groups;
+  const filteredGroups = useMemo(() => {
+    let result = groups;
+    if (mainGenderFilter !== "all") {
+      result = result.filter(g => String(g.gender) === mainGenderFilter);
+    }
+    if (mainSearch) {
+      const query = mainSearch.toLowerCase();
+      result = result.filter(g => 
+        g.group_name.toLowerCase().includes(query) || 
+        (g.athletes || []).some(a => (a.nama || "").toLowerCase().includes(query)) ||
+        (g.athletes || []).some(a => (a.klub || "").toLowerCase().includes(query))
+      );
+    }
+    return result;
+  }, [groups, mainSearch, mainGenderFilter]);
 
   const groupedMatches = useMemo(() => {
     return matches.reduce<Record<string, MatchRow[]>>((acc, match) => {
@@ -1612,14 +1641,26 @@ export default function MatchesPage() {
                     </div>
                   ))}
                 </div>
-              ) : groups.length === 0 ? (
+              ) : filteredGroups.length === 0 ? (
                 <Card className="rounded-lg border-foreground/10 bg-background/70">
                   <CardContent className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
-                    <Users className="h-10 w-10 text-muted-foreground" />
-                    <div>
-                      <h2 className="text-xl font-semibold">Belum ada grouping</h2>
-                      <p className="text-sm text-muted-foreground">Pilih kategori pertandingan lalu upload CSV/XLSX untuk membuat preview.</p>
-                    </div>
+                    {mainSearch ? (
+                      <>
+                        <Search className="h-10 w-10 text-muted-foreground" />
+                        <div>
+                          <h2 className="text-xl font-semibold">Tidak ada hasil ditemukan</h2>
+                          <p className="text-muted-foreground">Tidak ada kelompok atau atlet yang cocok dengan "{mainSearch}"</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-10 w-10 text-muted-foreground" />
+                        <div>
+                          <h2 className="text-xl font-semibold">Belum ada grouping</h2>
+                          <p className="text-muted-foreground">Pilih kategori pertandingan lalu upload CSV/XLSX untuk membuat preview.</p>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
