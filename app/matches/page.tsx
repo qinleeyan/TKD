@@ -512,7 +512,7 @@ export default function MatchesPage() {
         (m.bout_number && String(m.bout_number).toLowerCase().includes(query)) ||
         (m.match_number && String(m.match_number).toLowerCase().includes(query)) ||
         (m.arena_name && m.arena_name.toLowerCase().includes(query)) ||
-        (m.participants || []).some(p => (p.athlete_name || "").toLowerCase().includes(query))
+        (m.participants || []).some(p => (p.athlete_detail?.nama || "").toLowerCase().includes(query))
       );
     }
     return result;
@@ -526,9 +526,9 @@ export default function MatchesPage() {
     if (mainSearch) {
       const query = mainSearch.toLowerCase();
       result = result.filter(g => 
-        g.group_name.toLowerCase().includes(query) || 
-        (g.athletes || []).some(a => (a.nama || "").toLowerCase().includes(query)) ||
-        (g.athletes || []).some(a => (a.klub || "").toLowerCase().includes(query))
+        (g.category_name || "").toLowerCase().includes(query) || 
+        (g.assignments || []).some(a => (a.athlete_detail?.nama || "").toLowerCase().includes(query)) ||
+        (g.assignments || []).some(a => (a.athlete_detail?.klub || "").toLowerCase().includes(query))
       );
     }
     return result;
