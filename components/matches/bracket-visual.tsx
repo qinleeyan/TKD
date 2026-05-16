@@ -10,12 +10,14 @@ interface Athlete {
 }
 
 interface Match {
-  match_id: string;
-  nomor_partai: number;
-  athlete_a: any;
-  athlete_b: any;
-  babak: string;
-  is_final: boolean;
+  id?: string;
+  match_id?: string;
+  nomor_partai?: number;
+  bout_number?: number;
+  athlete_a?: any;
+  athlete_b?: any;
+  babak?: string;
+  is_final?: boolean;
 }
 
 interface BracketVisualProps {
@@ -41,11 +43,14 @@ export function BracketVisual({ athletes, matches }: BracketVisualProps) {
     );
   };
 
-  const renderMatchNumber = (num?: number) => (
-    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border border-foreground/20 rounded h-5 px-1.5 flex items-center justify-center z-10">
-      <span className="text-[9px] font-black italic">P{num}</span>
-    </div>
-  );
+  const renderMatchNumber = (match?: Match) => {
+    const num = match?.bout_number || match?.nomor_partai;
+    return (
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border border-foreground/20 rounded h-5 px-1.5 flex items-center justify-center z-10">
+        <span className="text-[9px] font-black italic">{num ? `Partai ${num}` : "P"}</span>
+      </div>
+    );
+  };
 
   return (
     <div className="relative p-2 bg-foreground/[0.02] rounded-xl border border-foreground/5 overflow-hidden">
@@ -62,7 +67,7 @@ export function BracketVisual({ athletes, matches }: BracketVisualProps) {
             <div className="w-8 h-[2px] bg-foreground/20" />
             <div className="w-[2px] h-[50px] bg-foreground/20 absolute right-0 bottom-[calc(50%+1px)]" />
           </div>
-          {renderMatchNumber(matches[0]?.nomor_partai)}
+          {renderMatchNumber(matches[0])}
         </div>
       )}
 
@@ -86,12 +91,12 @@ export function BracketVisual({ athletes, matches }: BracketVisualProps) {
              </div>
              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-full bg-foreground/20" />
              <div className="absolute -right-4 top-1/2 w-4 h-[2px] bg-foreground/20" />
-             {renderMatchNumber(matches.find(m => !m.is_final)?.nomor_partai)}
+             {renderMatchNumber(matches.find(m => !m.is_final && m.match_number !== undefined ? m.match_number === 1 : m !== matches[matches.length-1]))}
           </div>
           {/* Final Connection */}
           <div className="absolute right-0 top-[calc(50%-1px)] w-4 h-[2px] bg-foreground/20" />
           <div className="absolute right-[-16px] top-1/2 -translate-y-1/2">
-             {renderMatchNumber(matches.find(m => m.is_final)?.nomor_partai)}
+             {renderMatchNumber(matches.find(m => m.is_final || m === matches[matches.length-1]))}
           </div>
         </div>
       )}
@@ -104,7 +109,7 @@ export function BracketVisual({ athletes, matches }: BracketVisualProps) {
               {renderAthlete(athletes[1], 'red')}
               <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-4 h-[2px] bg-foreground/20" />
               <div className="absolute -right-4 top-1/4 h-1/2 w-[2px] bg-foreground/20" />
-              {renderMatchNumber(matches[0]?.nomor_partai)}
+              {renderMatchNumber(matches[0])}
            </div>
            {/* Bottom SF */}
            <div className="relative flex flex-col gap-4">
@@ -112,14 +117,14 @@ export function BracketVisual({ athletes, matches }: BracketVisualProps) {
               {renderAthlete(athletes[3], 'red')}
               <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-4 h-[2px] bg-foreground/20" />
               <div className="absolute -right-4 top-1/4 h-1/2 w-[2px] bg-foreground/20" />
-              {renderMatchNumber(matches[1]?.nomor_partai)}
+              {renderMatchNumber(matches[1])}
            </div>
            {/* Final Link */}
            <div className="col-span-2 relative h-4 mt-[-20px]">
               <div className="absolute left-[calc(25%+16px)] right-[calc(25%+16px)] top-0 h-[60px] border-r-2 border-l-2 border-t-2 border-foreground/20 rounded-t-lg" />
               <div className="absolute left-1/2 top-0 -translate-x-1/2 h-10 w-[2px] bg-foreground/20 mt-[-40px]" />
               <div className="absolute left-1/2 top-0 -translate-x-1/2 mt-[-60px]">
-                {renderMatchNumber(matches.find(m => m.is_final)?.nomor_partai)}
+                {renderMatchNumber(matches.find(m => m.is_final || m === matches[matches.length-1]))}
               </div>
            </div>
         </div>

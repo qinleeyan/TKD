@@ -149,6 +149,18 @@ function genderLabel(gender: number) {
   return gender === 0 ? "Laki-laki" : "Perempuan";
 }
 
+function GenderBadge({ gender }: { gender: number }) {
+  return (
+    <Badge className={`text-[8px] h-4 px-1.5 uppercase font-bold shadow-none border-none ${
+      gender === 0 
+        ? "bg-blue-500 hover:bg-blue-600 text-white" 
+        : "bg-pink-500 hover:bg-pink-600 text-white"
+    }`}>
+      {gender === 0 ? "Putra" : "Putri"}
+    </Badge>
+  );
+}
+
 const sabukLabels: Record<number, string> = {
   0: "PUTIH",
   1: "KUNING",
@@ -1502,7 +1514,7 @@ export default function MatchesPage() {
                               <div className="min-w-0">
                                 <CardTitle className="text-[13px] font-bold truncate leading-none">{group.group_name}</CardTitle>
                                 <div className="mt-1 flex flex-wrap gap-1">
-                                  <Badge variant="secondary" className="bg-foreground/5 text-foreground/70 text-[8px] h-3.5 px-1">{group.gender_display || genderLabel(group.gender)}</Badge>
+                                  <GenderBadge gender={group.gender} />
                                   <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.athletes.length} atlet</Badge>
                                   <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
                                   <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
@@ -1710,7 +1722,7 @@ export default function MatchesPage() {
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <CardTitle className="text-sm font-bold truncate tracking-tight">{group.group_name}</CardTitle>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{group.gender_display || genderLabel(group.gender)}</p>
+                            <div className="mt-1"><GenderBadge gender={group.gender} /></div>
                           </div>
                           <div className="flex gap-1 shrink-0">
                             <Button size="icon" variant="ghost" className="h-7 w-7" title="Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
@@ -2267,9 +2279,7 @@ export default function MatchesPage() {
                                 <CardTitle className="text-sm font-semibold tracking-tight">{group.group_name}</CardTitle>
                                 {group.is_manual && <Badge variant="outline" className="text-[9px] bg-primary/5 text-primary border-primary/20">Manual</Badge>}
                               </div>
-                              <Badge variant="secondary" className="text-[10px] uppercase tracking-widest opacity-70">
-                                {group.gender_display || genderLabel(group.gender)}
-                              </Badge>
+                              <GenderBadge gender={group.gender} />
                             </div>
                           </CardHeader>
                           <CardContent className="p-3 pt-0">
@@ -2601,7 +2611,7 @@ export default function MatchesPage() {
                       >
                         <div className="flex flex-col items-start min-w-0">
                           <span className="font-bold text-sm truncate uppercase">{group.group_name}</span>
-                          <span className="text-[10px] opacity-50 uppercase">{group.gender_display || genderLabel(group.gender)} • {group.athletes.length} Atlet</span>
+                          <div className="flex items-center gap-1 mt-0.5"><GenderBadge gender={group.gender} /><span className="text-[10px] opacity-50 uppercase">• {group.athletes.length} Atlet</span></div>
                         </div>
                         <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all text-primary" />
                       </Button>
