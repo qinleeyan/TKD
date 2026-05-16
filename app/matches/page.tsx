@@ -542,12 +542,12 @@ export default function MatchesPage() {
     // Client-side category filtering
     if (selectedCategory !== "all") {
       const catVal = (selectedCategory === "poomsae" || selectedCategory === "1") ? 1 : 0;
-      result = result.filter(g => g && g.match_category === catVal);
+      result = result.filter(g => g && g.match_category == catVal);
     }
 
     // Client-side gender filtering
     if (mainGenderFilter !== "all") {
-      result = result.filter(g => g && String(g.gender) === mainGenderFilter);
+      result = result.filter(g => g && g.gender == mainGenderFilter);
     }
 
     if (mainSearch) {
@@ -676,7 +676,8 @@ export default function MatchesPage() {
   // --- Data Loading Optimization (Targeted Fetching) ---
   useEffect(() => {
     loadGroups(true);
-  }, [loadGroups]);
+    loadAthletes(true);
+  }, [loadGroups, loadAthletes]);
 
   useEffect(() => {
     loadMatches(true);
