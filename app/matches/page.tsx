@@ -705,13 +705,35 @@ export default function MatchesPage() {
       })));
     }
 
-    if (event === "athlete_created") {
+    if (event === "athlete_created" && data?.id) {
       toast.info(`📢 ${data.nama} (${data.kontingen || 'UMUM'}) baru saja mendaftar!`, {
         id: `created-${data.id}`,
-        description: `Kategori: ${data.category}`,
+        description: `Kategori: ${data.sabuk_display || 'Peserta'}`,
         duration: 5000,
       });
-      loadAthletes();
+      setAthletes(prev => {
+        const exists = prev.find(a => a.id === data.id);
+        if (exists) return prev;
+        return [...prev, data];
+      });
+    }
+
+    if (event === "athlete_updated" && data?.id) {
+      setAthletes(prev => prev.map(a => a.id === data.id ? { ...a, ...data } : a));
+      
+      // Also update in groups if exists
+      setGroups(prev => prev.map(g => ({
+        ...g,
+        athletes: g.athletes.map(a => a.id === data.id ? { ...a, ...data } : a)
+      })));
+    }
+
+    if (event === "athlete_deleted" && data?.id) {
+      setAthletes(prev => prev.filter(a => a.id !== data.id));
+      setGroups(prev => prev.map(g => ({
+        ...g,
+        athletes: g.athletes.filter(a => a.id !== data.id)
+      })));
     }
 
     if (event === "match_finished") {
