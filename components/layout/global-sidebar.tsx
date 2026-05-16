@@ -493,36 +493,23 @@ function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: bo
             );
           })
         )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Chat Input Area */}
-      <div className="p-4 sm:p-6 bg-background border-t border-foreground/10 pb-10 sm:pb-12 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        {/* Typing Indicator with Animation */}
         {typingUsers.size > 0 && (
-          <div className="px-4 py-3 flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-300">
-            <div className="flex shrink-0 -space-x-2">
-              {Array.from(typingUsers).slice(0, 3).map((u) => (
-                <div key={u} className="h-6 w-6 rounded-full bg-blue-100 border-2 border-background flex items-center justify-center overflow-hidden">
-                  <span className="text-[10px] font-bold text-blue-600 uppercase">{u.slice(0, 1)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-blue-600 italic">
-                  {Array.from(typingUsers).join(", ")}
-                </span>
-                <div className="flex gap-1 items-center h-2">
-                  <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="h-1 w-1 bg-blue-400 rounded-full animate-bounce"></span>
-                </div>
-              </div>
-              <span className="text-[9px] text-blue-400/80 leading-none">sedang mengetik...</span>
+          <div className="flex flex-col items-start gap-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <span className="text-[10px] font-bold text-blue-500/70 ml-2">
+              {Array.from(typingUsers).join(", ")}
+            </span>
+            <div className="bg-foreground/5 border border-foreground/10 px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center shadow-sm">
+              <span className="h-1.5 w-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="h-1.5 w-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="h-1.5 w-1.5 bg-foreground/40 rounded-full animate-bounce"></span>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-4 sm:p-5 bg-background border-t border-foreground/10 pb-6 sm:pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        {/* Input Area */}
         
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <input
