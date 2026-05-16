@@ -3058,7 +3058,7 @@ export default function MatchesPage() {
             </Button>
             <Button 
               className="rounded-xl h-12 px-8 flex-1 md:flex-none font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" 
-              disabled={saving || !gladiatorForm.red.nama || !gladiatorForm.blue.nama || !gladiatorForm.arena_id}
+              disabled={saving || !gladiatorForm.red.nama || !gladiatorForm.blue.nama}
               onClick={handleCreateGladiator}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
