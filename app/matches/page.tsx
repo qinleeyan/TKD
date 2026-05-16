@@ -311,6 +311,7 @@ export default function MatchesPage() {
   const [groupPage, setGroupPage] = useState(1);
   const [groupTotalPages, setGroupTotalPages] = useState(1);
   const [isGroupsLoading, setIsGroupsLoading] = useState(true);
+  const [hasLoadedBrackets, setHasLoadedBrackets] = useState(false);
   const [isAthletesLoading, setIsAthletesLoading] = useState(true);
   const [isRoundsLoading, setIsRoundsLoading] = useState(true);
   const [isMatchesLoading, setIsMatchesLoading] = useState(true);
@@ -536,10 +537,19 @@ export default function MatchesPage() {
   }, [matches, matchSearch, matchStatusFilter]);
 
   const filteredGroups = useMemo(() => {
-    let result = Array.isArray(groups) ? groups : [];
-    if (mainGenderFilter !== "all") {
-      result = result.filter(g => String(g.gender) === mainGenderFilter);
+    let result = Array.isArray(groups) ? [...groups] : [];
+
+    // Client-side category filtering
+    if (selectedCategory !== "all") {
+      const catVal = selectedCategory === "1" ? 1 : 0;
+      result = result.filter(g => g && g.match_category === catVal);
     }
+
+    // Client-side gender filtering
+    if (mainGenderFilter !== "all") {
+      result = result.filter(g => g && String(g.gender) === mainGenderFilter);
+    }
+
     if (mainSearch) {
       const query = String(mainSearch).toLowerCase();
       result = result.filter(g => {
@@ -571,12 +581,13 @@ export default function MatchesPage() {
     }, {});
   }, [matches]);
 
-  const loadGroups = useCallback(async (silent = false) => {
+  const loadGroups = useCallback(async (silent = false, withMatches = false) => {
     if (!silent) setLoading(true);
     setIsGroupsLoading(true);
     try {
       // Use a larger page size to enable better local filtering and prevent delay
-      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=${selectedCategory}&gender=${mainGenderFilter}&page_size=200`;
+      const matchFlag = withMatches ? "1" : "0";
+      let url = `/matches/weight-classes/?tournament=${TOURNAMENT_ID}&category=all&gender=all&page_size=500&include_matches=${matchFlag}`;
       
       const res = await fetchWithAuth(url);
       if (res.ok) {
@@ -665,7 +676,7 @@ export default function MatchesPage() {
   // --- Data Loading Optimization (Targeted Fetching) ---
   useEffect(() => {
     loadGroups(true);
-  }, [selectedCategory, sortBy, groupPage, mainGenderFilter, loadGroups]);
+  }, [loadGroups]);
 
   useEffect(() => {
     loadMatches(true);
@@ -1597,7 +1608,16 @@ export default function MatchesPage() {
             </div>
           </div>
 
-          <Tabs defaultValue="groups" className="space-y-6">
+          <Tabs 
+            defaultValue="groups" 
+            className="space-y-6"
+            onValueChange={(val) => {
+              if (val === "bracket" && !hasLoadedBrackets) {
+                loadGroups(false, true);
+                setHasLoadedBrackets(true);
+              }
+            }}
+          >
             <TabsList className="rounded-lg bg-background/50 border border-foreground/5 p-1">
               <TabsTrigger value="groups" className="rounded-md px-6">Grouping</TabsTrigger>
               <TabsTrigger value="bracket" className="rounded-md px-6">Bracket</TabsTrigger>
