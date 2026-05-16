@@ -509,6 +509,7 @@ export default function MatchesPage() {
     if (matchSearch) {
       const query = String(matchSearch).toLowerCase();
       result = result.filter(m => {
+        if (!m) return false;
         try {
           const boutStr = m.bout_number ? String(m.bout_number).toLowerCase() : "";
           const matchNumStr = m.match_number ? String(m.match_number).toLowerCase() : "";
@@ -542,6 +543,7 @@ export default function MatchesPage() {
     if (mainSearch) {
       const query = String(mainSearch).toLowerCase();
       result = result.filter(g => {
+        if (!g) return false;
         try {
           const nameMatch = (g.group_name || g.category_name || "").toLowerCase().includes(query);
           const athleteMatch = (g.athletes || g.assignments || []).some(a => {
@@ -580,7 +582,8 @@ export default function MatchesPage() {
       if (res.ok) {
         const data = await res.json();
         const results = Array.isArray(data) ? data : (data.results || []);
-        setGroups(results.map((item: any, index: number) => normalizeGroup(item, index)));
+        const validResults = results.filter(Boolean);
+        setGroups(validResults.map((item: any, index: number) => normalizeGroup(item, index)));
         if (data.count) setGroupTotalPages(Math.ceil(data.count / 200));
       }
     } catch {
