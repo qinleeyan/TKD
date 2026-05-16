@@ -515,19 +515,21 @@ export default function MatchesPage() {
     }
   }, []);
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    setSelectedGroupIds([]); // Clear selection on reload
-    try {
-      await Promise.all([loadGroups(true), loadMatches(true), loadRounds(true), loadAthletes(), loadArenas()]);
-    } finally {
-      setLoading(false);
-    }
-  }, [loadGroups, loadMatches, loadRounds, loadAthletes, loadArenas]);
+  // --- Data Loading Optimization (Targeted Fetching) ---
+  useEffect(() => {
+    loadGroups(true);
+  }, [selectedCategory, sortBy, groupPage, mainSearch, mainGenderFilter, loadGroups]);
 
   useEffect(() => {
-    loadAll();
-  }, [selectedCategory, sortBy, matchPage, groupPage]);
+    loadMatches(true);
+  }, [selectedCategory, matchPage, matchSearch, matchStatusFilter, loadMatches]);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([loadRounds(true), loadAthletes(), loadArenas()]).finally(() => {
+      setLoading(false);
+    });
+  }, [selectedCategory, loadRounds, loadAthletes, loadArenas]);
 
   // --- Real-time Real-time (Zero Latency) ---
   useRealtime(TOURNAMENT_ID, useCallback((event, data) => {
@@ -588,15 +590,25 @@ export default function MatchesPage() {
         return results;
       });
 
-      // Update groups locally if match affects group status
-      if (data.status === "finished") {
-        setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => {
-          if (g.group_name === data.group_name) {
-            return { ...g, status: "updated" };
+      // Update groups locally so bracket visualizer updates in real-time
+      setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => {
+        let hasMatch = false;
+        const updatedMatches = (g.matches || []).map((m: any) => {
+          if (m.id === data.id) {
+            hasMatch = true;
+            return { ...m, ...data };
           }
-          return g;
-        }));
-      }
+          return m;
+        });
+
+        if (hasMatch || g.group_name === data.group_name) {
+          if (!hasMatch && event === "match_created") {
+            updatedMatches.push(data);
+          }
+          return { ...g, matches: updatedMatches, status: data.status === "finished" ? "updated" : g.status };
+        }
+        return g;
+      }));
       return;
     }
 
