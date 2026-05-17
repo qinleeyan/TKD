@@ -131,8 +131,11 @@ function StatsView() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const summary = await fetchWithAuth("/matches/summary/?tournament=1");
-        setStats(summary);
+        const res = await fetchWithAuth("/matches/summary/?tournament=1");
+        if (res.ok) {
+          const summary = await res.json();
+          setStats(summary);
+        }
       } catch (err) {
         console.error("Failed to fetch stats:", err);
       }

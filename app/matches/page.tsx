@@ -486,6 +486,9 @@ export default function MatchesPage() {
         setRedSearchQuery("");
         setBlueSearchQuery("");
         setGladiatorDialogOpen(false);
+        loadAthletes();
+        loadMatches(true);
+        loadGroups(true);
       } else {
         const err = await res.json();
         toast.error(err.error || "Gagal membuat match.");
@@ -2282,9 +2285,9 @@ export default function MatchesPage() {
                           <TableCell className="py-4">
                             <div className="flex flex-col gap-1 text-[11px]">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-bold">{athlete.umur}th</span>
+                                <span className="font-bold">{athlete.umur ? `${athlete.umur}th` : '-'}</span>
                                 <span className="opacity-20">•</span>
-                                <span>{athlete.berat_kg}kg / {athlete.tinggi_cm}cm</span>
+                                <span>{athlete.berat_kg ? `${athlete.berat_kg}kg` : '-'} / {athlete.tinggi_cm ? `${athlete.tinggi_cm}cm` : '-'}</span>
                               </div>
                               <span className="text-[10px] text-muted-foreground uppercase font-medium">
                                 {athlete.gender === 0 ? "Laki-laki" : "Perempuan"}
