@@ -85,11 +85,42 @@ export default function OperatorPage() {
   const [loadingCourts, setLoadingCourts] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"queue" | "bracket">("queue");
+  const [weightClasses, setWeightClasses] = useState<any[]>([]);
+  const [loadingWeightClasses, setLoadingWeightClasses] = useState(false);
+  const [selectedWeightClassId, setSelectedWeightClassId] = useState<number | null>(null);
   
   const selectedMatch = useMemo(() => 
     matches.find(m => m.id === selectedMatchId),
     [matches, selectedMatchId]
   );
+
+  const selectedWeightClass = useMemo(() => 
+    weightClasses.find(wc => wc.id === selectedWeightClassId),
+    [weightClasses, selectedWeightClassId]
+  );
+
+  const selectedGroupMatches = useMemo(() => 
+    selectedWeightClass?.matches || [],
+    [selectedWeightClass]
+  );
+
+  const { matchesByRound, maxRound } = useMemo(() => {
+    const rounds: { [key: number]: any[] } = {};
+    let maxR = 0;
+    selectedGroupMatches.forEach((m: any) => {
+      const r = m.round_number;
+      if (r > maxR) maxR = r;
+      if (!rounds[r]) rounds[r] = [];
+      rounds[r].push(m);
+    });
+    return { matchesByRound: rounds, maxRound: maxR };
+  }, [selectedGroupMatches]);
+
+  const roundsArray = useMemo(() => {
+    return Object.keys(matchesByRound).map(Number).sort((a, b) => a - b);
+  }, [matchesByRound]);
+
 
   const filteredMatches = useMemo(() => {
     const active = matches.filter(m => m.status !== 'finished');
@@ -207,9 +238,32 @@ export default function OperatorPage() {
     setLoadingMatches(false);
   }, [courtConfig]);
 
+  const loadWeightClasses = useCallback(async () => {
+    setLoadingWeightClasses(true);
+    try {
+      const res = await fetchWithAuth(`/matches/weight-classes/?tournament=${TOURNAMENT_ID}&include_matches=1`);
+      if (res.ok) {
+        const data = await res.json();
+        const results = data.results || data || [];
+        setWeightClasses(results);
+        
+        // Auto select first weight class if not selected
+        if (results.length > 0 && !selectedWeightClassId) {
+          setSelectedWeightClassId(results[0].id);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load weight classes", e);
+    }
+    setLoadingWeightClasses(false);
+  }, [selectedWeightClassId]);
+
   useEffect(() => {
-    if (user && courtConfig) loadMatches();
-  }, [courtConfig, user, loadMatches]);
+    if (user && courtConfig) {
+      loadMatches();
+      loadWeightClasses();
+    }
+  }, [courtConfig, user, loadMatches, loadWeightClasses]);
 
   useRealtime(TOURNAMENT_ID, useCallback((ev, data) => {
     // 🛡️ DEDUPLICATION GUARD
@@ -231,10 +285,12 @@ export default function OperatorPage() {
         }
         return prev;
       });
+      loadWeightClasses();
     }
 
     if (ev === "match_deleted" && data?.id) {
       setMatches(prev => prev.filter(m => m.id !== data.id));
+      loadWeightClasses();
     }
 
     if (ev === "athlete_checkin") {
@@ -257,24 +313,28 @@ export default function OperatorPage() {
           : p
         )
       })));
+      loadWeightClasses();
     }
 
     if (ev === "groups_confirmed") {
       loadMatches();
+      loadWeightClasses();
     }
 
     if (ev === "athlete_created") {
       toast.info(`📢 ${data.nama} (${data.kontingen || 'UMUM'}) baru saja mendaftar!`, {
         id: `created-${data.id}`,
       });
+      loadWeightClasses();
     }
 
     if (ev === "match_finished" && data?.id) {
       toast.success(`🏆 ${data.winner_name} memenangkan partai #${data.bout_number || data.match_number}!`, {
         id: `match-${data.id}`,
       });
+      loadWeightClasses();
     }
-  }, [courtConfig, loadMatches]));
+  }, [courtConfig, loadMatches, loadWeightClasses]));
 
   if (loading || !authChecked) {
     return (
@@ -301,10 +361,51 @@ export default function OperatorPage() {
     if (res.ok) {
       toast.success("Pertandingan selesai.");
       setSelectedMatchId(null);
+      loadMatches();
+      loadWeightClasses();
     } else {
       toast.error("Gagal menyelesaikan pertandingan.");
     }
   };
+
+  const handleWinnerSelect = async (matchId: number, athleteId: number, corner: "red" | "blue", athleteName: string) => {
+    if (window.confirm(`Tandai ${athleteName} sebagai pemenang?`)) {
+      const res = await fetchWithAuth(`/matches/${matchId}/finish/`, {
+        method: "POST",
+        body: JSON.stringify({ winner_id: athleteId, winner_corner: corner }),
+      });
+      if (res.ok) {
+        toast.success(`${athleteName} dinyatakan menang!`);
+        loadMatches();
+        loadWeightClasses();
+      } else {
+        toast.error("Gagal menyelesaikan pertandingan.");
+      }
+    }
+  };
+
+  const handleCallMatch = async (matchId: number) => {
+    const res = await fetchWithAuth(`/matches/${matchId}/call/`, { method: "POST" });
+    if (res.ok) {
+      toast.success("Partai dipanggil.");
+      loadMatches();
+      loadWeightClasses();
+    } else {
+      toast.error("Gagal memproses.");
+    }
+  };
+
+  const handleStartMatch = async (matchId: number) => {
+    const res = await fetchWithAuth(`/matches/${matchId}/start/`, { method: "POST" });
+    if (res.ok) {
+      toast.success("Pertandingan dimulai.");
+      loadMatches();
+      loadWeightClasses();
+    } else {
+      toast.error("Gagal memproses.");
+    }
+  };
+
 
   return (
     <main className="min-h-screen bg-background relative overflow-hidden selection:bg-foreground selection:text-background font-sans">
@@ -444,244 +545,487 @@ export default function OperatorPage() {
         ) : (
           <div className="flex-1 flex gap-8 overflow-hidden pb-8">
             {/* Left Panel: Match Control (45%) */}
-            <div className="w-[45%] flex flex-col gap-6">
-              <div className="flex items-center justify-between p-6 bg-card/40 backdrop-blur-3xl rounded-[2rem] border border-foreground/[0.08] shadow-2xl">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setCourtConfig(null)}
-                  className="gap-2 rounded-xl border-foreground/10 hover:bg-foreground/5 px-4 h-10 text-[10px] font-bold uppercase tracking-widest transition-all"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" /> Kembali
-                </Button>
-                <div className="text-right">
-                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-0.5 opacity-60">{courtConfig.status}</p>
-                  <h2 className="text-2xl font-display italic tracking-tight uppercase leading-none">{courtConfig.name}</h2>
+            {activeTab === 'queue' && (
+              <div className="w-[45%] flex flex-col gap-6">
+                <div className="flex items-center justify-between p-6 bg-card/40 backdrop-blur-3xl rounded-[2rem] border border-foreground/[0.08] shadow-2xl">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setCourtConfig(null)}
+                    className="gap-2 rounded-xl border-foreground/10 hover:bg-foreground/5 px-4 h-10 text-[10px] font-bold uppercase tracking-widest transition-all"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" /> Kembali
+                  </Button>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-0.5 opacity-60">{courtConfig.status}</p>
+                    <h2 className="text-2xl font-display italic tracking-tight uppercase leading-none">{courtConfig.name}</h2>
+                  </div>
+                </div>
+
+                {selectedMatch ? (
+                  <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="grid grid-cols-2 gap-4">
+                      <AthleteControlCard 
+                        participant={selectedMatch.participants.find(p => p.corner === "red")} 
+                        corner="red" 
+                        onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "red")!)}
+                      />
+                      <AthleteControlCard 
+                        participant={selectedMatch.participants.find(p => p.corner === "blue")} 
+                        corner="blue" 
+                        onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "blue")!)}
+                      />
+                    </div>
+
+                    <Card className="bg-card/40 border border-foreground/[0.08] shadow-2xl rounded-[2.5rem] overflow-hidden backdrop-blur-3xl">
+                      <CardHeader className="p-8 pb-2">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle className="text-xl font-display italic tracking-tight uppercase">Detail Pertandingan</CardTitle>
+                          </div>
+                          <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-foreground text-background shadow-xl">
+                            <span className="text-xl font-black font-display tracking-tighter">#{selectedMatch.bout_number || selectedMatch.match_number}</span>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-8 pt-2 space-y-8">
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-foreground/[0.05]">
+                          <div>
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">KELAS</p>
+                            <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.group_name || "-"}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">STATUS</p>
+                            <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.status}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                          {selectedMatch.status === 'scheduled' && (
+                            <Button 
+                              className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-background border border-foreground/10 hover:bg-foreground hover:text-background transition-all shadow-xl active:scale-[0.98]"
+                              onClick={() => postAction(selectedMatch.id, 'call')}
+                            >
+                              <Megaphone className="h-3.5 w-3.5" /> PANGGIL ATLET
+                            </Button>
+                          )}
+                          {(selectedMatch.status === 'called' || selectedMatch.status === 'scheduled') && (
+                            <Button 
+                              className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-foreground text-background hover:opacity-90 transition-all shadow-2xl active:scale-[0.98]"
+                              onClick={() => postAction(selectedMatch.id, 'start')}
+                            >
+                              <Swords className="h-3.5 w-3.5" /> MULAI TANDING
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                   <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-foreground/5 rounded-[3.5rem] bg-foreground/[0.01] transition-all duration-700 hover:bg-foreground/[0.02] group/empty">
+                    <div className="relative mb-10 transition-transform duration-700 group-hover/empty:scale-110">
+                      <Activity className="h-24 w-24 text-foreground opacity-[0.03]" />
+                      <div className="absolute inset-0 h-24 w-24 border border-foreground opacity-[0.05] rounded-full animate-ping" />
+                    </div>
+                    <h3 className="font-display text-3xl italic tracking-tight opacity-30">Pilih partai untuk dikelola</h3>
+                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/30 mt-4">Antrean Sistem Sinkron</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Right Panel: Match Queue (55% or 100%) */}
+            <div className={`${activeTab === 'queue' ? 'w-[55%]' : 'w-full'} flex flex-col gap-6 overflow-hidden transition-all duration-500`}>
+              <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-4">
+                    {activeTab === 'bracket' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setCourtConfig(null)}
+                        className="gap-2 rounded-xl border-foreground/10 hover:bg-foreground/5 px-4 h-9 text-[9px] font-bold uppercase tracking-widest transition-all"
+                      >
+                        <ArrowLeft className="h-3 w-3" /> Dashboard
+                      </Button>
+                    )}
+                    <h2 className="text-2xl font-display italic tracking-tight uppercase">
+                      {activeTab === 'queue' ? 'Antrean Pertandingan' : `${courtConfig.name} - Bagan Bracket`}
+                    </h2>
+                  </div>
+                  {activeTab === 'queue' ? (
+                    <p className="text-[10px] text-emerald-500 font-semibold uppercase tracking-widest mt-0.5 opacity-90 flex items-center gap-1.5 animate-pulse">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                      Atlet Hadir (READY) Otomatis Naik Ke Atas
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mt-0.5 opacity-90">
+                      Kelola status & tandai pemenang langsung dari bagan visual
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Modern premium tab buttons */}
+                  <div className="flex bg-foreground/5 p-1 rounded-xl gap-1">
+                    <button 
+                      onClick={() => setActiveTab("queue")} 
+                      className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-300 ${activeTab === 'queue' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      Antrean
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab("bracket")} 
+                      className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-300 ${activeTab === 'bracket' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      Bagan Bracket
+                    </button>
+                  </div>
+
+                  {activeTab === 'queue' && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={loadMatches} 
+                      className={`h-10 w-10 rounded-full hover:bg-foreground/5 transition-all ${loadingMatches ? 'animate-spin' : ''}`}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
 
-              {selectedMatch ? (
-                <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
-                  <div className="grid grid-cols-2 gap-4">
-                    <AthleteControlCard 
-                      participant={selectedMatch.participants.find(p => p.corner === "red")} 
-                      corner="red" 
-                      onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "red")!)}
-                    />
-                    <AthleteControlCard 
-                      participant={selectedMatch.participants.find(p => p.corner === "blue")} 
-                      corner="blue" 
-                      onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "blue")!)}
-                    />
+              {activeTab === "queue" ? (
+                <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {filteredMatches.map((match) => {
+                      const redParticipant = match.participants.find(p => p.corner === 'red');
+                      const blueParticipant = match.participants.find(p => p.corner === 'blue');
+                      const isRedReady = redParticipant?.athlete_detail?.is_checked_in === true;
+                      const isBlueReady = blueParticipant?.athlete_detail?.is_checked_in === true;
+                      const isBothReady = isRedReady && isBlueReady;
+                      const isPartialReady = (isRedReady || isBlueReady) && !isBothReady;
+
+                      return (
+                        <Card 
+                          key={match.id}
+                          className={`group cursor-pointer transition-all duration-500 border overflow-hidden rounded-[1.5rem] shadow-xl relative ${
+                            selectedMatchId === match.id 
+                              ? 'bg-foreground/[0.06] ring-2 ring-foreground/20 border-foreground/20' 
+                              : isBothReady 
+                                ? 'border-emerald-500/20 bg-emerald-500/[0.01] hover:bg-emerald-500/[0.03] hover:border-emerald-500/35 shadow-emerald-500/5'
+                                : isPartialReady
+                                  ? 'border-amber-500/15 bg-amber-500/[0.005] hover:bg-amber-500/[0.02] hover:border-amber-500/30 shadow-amber-500/5'
+                                  : 'border-foreground/[0.08] bg-card/40 hover:bg-card/60'
+                          }`}
+                          onClick={() => setSelectedMatchId(match.id)}
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex justify-between items-center mb-6">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl font-display italic tracking-tight font-black">#{match.bout_number || match.match_number}</span>
+                                {isBothReady && (
+                                  <Badge variant="outline" className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-emerald-500 text-white border-none shadow-[0_0_8px_rgba(16,185,129,0.35)] animate-pulse">
+                                    SIAP MAIN
+                                  </Badge>
+                                )}
+                                {isPartialReady && (
+                                  <Badge variant="outline" className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                    PARTIAL
+                                  </Badge>
+                                )}
+                              </div>
+                              <Badge variant="outline" className={`px-3 py-0.5 rounded-lg text-[8px] font-black tracking-widest uppercase border-foreground/10 ${match.status === 'called' ? 'bg-amber-500/10 text-amber-500' : 'bg-background/50'}`}>
+                                {match.status}
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-2 mb-6">
+                              {/* Red Corner */}
+                              <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-300 ${
+                                isRedReady 
+                                  ? 'bg-red-500/[0.05] border-red-500/20' 
+                                  : 'bg-background/40 border-foreground/[0.03]'
+                              }`}>
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <div className={`h-2.5 w-2.5 rounded-full transition-all ${
+                                    isRedReady 
+                                      ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' 
+                                      : 'bg-red-500/30'
+                                  }`} />
+                                  <div className="min-w-0 flex-1">
+                                    <p className={`text-sm font-bold tracking-tight truncate uppercase ${
+                                      isRedReady ? 'text-foreground font-bold' : 'text-foreground/40 font-medium'
+                                    }`}>
+                                      {redParticipant?.athlete_detail?.nama || 'BYE'}
+                                    </p>
+                                    <p className="text-[8px] font-medium text-muted-foreground/60 uppercase truncate">
+                                      {redParticipant?.athlete_detail?.kontingen || 'INDIVIDUAL'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className={`text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md ${
+                                  isRedReady 
+                                    ? 'bg-emerald-500 text-white shadow-sm' 
+                                    : 'bg-foreground/5 text-foreground/30'
+                                }`}>
+                                  {isRedReady ? "READY" : "ABSEN"}
+                                </span>
+                              </div>
+
+                              {/* Blue Corner */}
+                              <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-300 ${
+                                isBlueReady 
+                                  ? 'bg-blue-500/[0.05] border-blue-500/20' 
+                                  : 'bg-background/40 border-foreground/[0.03]'
+                              }`}>
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <div className={`h-2.5 w-2.5 rounded-full transition-all ${
+                                    isBlueReady 
+                                      ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' 
+                                      : 'bg-blue-500/30'
+                                  }`} />
+                                  <div className="min-w-0 flex-1">
+                                    <p className={`text-sm font-bold tracking-tight truncate uppercase ${
+                                      isBlueReady ? 'text-foreground font-bold' : 'text-foreground/40 font-medium'
+                                    }`}>
+                                      {blueParticipant?.athlete_detail?.nama || 'BYE'}
+                                    </p>
+                                    <p className="text-[8px] font-medium text-muted-foreground/60 uppercase truncate">
+                                      {blueParticipant?.athlete_detail?.kontingen || 'INDIVIDUAL'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className={`text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md ${
+                                  isBlueReady 
+                                    ? 'bg-emerald-500 text-white shadow-sm' 
+                                    : 'bg-foreground/5 text-foreground/30'
+                                }`}>
+                                  {isBlueReady ? "READY" : "ABSEN"}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="pt-4 border-t border-foreground/[0.05] flex justify-between items-center">
+                              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest truncate max-w-[150px] opacity-60">
+                                {match.group_name}
+                              </span>
+                              <ChevronRight className="h-4 w-4 opacity-20 group-hover:opacity-100 transition-opacity translate-x-0 group-hover:translate-x-1 duration-300" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                    
+                    {filteredMatches.length === 0 && (
+                      <div className="col-span-full h-80 flex flex-col items-center justify-center text-muted-foreground/10 bg-secondary/5 rounded-[3rem] border-4 border-dashed border-foreground/5">
+                        <Layout className="h-20 w-20 mb-4" />
+                        <p className="font-display text-2xl tracking-tight opacity-40">Belum ada partai</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mt-2">Update otomatis aktif</p>
+                      </div>
+                    )}
                   </div>
-
-                  <Card className="bg-card/40 border border-foreground/[0.08] shadow-2xl rounded-[2.5rem] overflow-hidden backdrop-blur-3xl">
-                    <CardHeader className="p-8 pb-2">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <CardTitle className="text-xl font-display italic tracking-tight uppercase">Detail Pertandingan</CardTitle>
-                        </div>
-                        <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-foreground text-background shadow-xl">
-                          <span className="text-xl font-black font-display tracking-tighter">#{selectedMatch.bout_number || selectedMatch.match_number}</span>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-8 pt-2 space-y-8">
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-foreground/[0.05]">
-                        <div>
-                          <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">KELAS</p>
-                          <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.group_name || "-"}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">STATUS</p>
-                          <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.status}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-4">
-                        {selectedMatch.status === 'scheduled' && (
-                          <Button 
-                            className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-background border border-foreground/10 hover:bg-foreground hover:text-background transition-all shadow-xl active:scale-[0.98]"
-                            onClick={() => postAction(selectedMatch.id, 'call')}
-                          >
-                            <Megaphone className="h-3.5 w-3.5" /> PANGGIL ATLET
-                          </Button>
-                        )}
-                        {(selectedMatch.status === 'called' || selectedMatch.status === 'scheduled') && (
-                          <Button 
-                            className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-foreground text-background hover:opacity-90 transition-all shadow-2xl active:scale-[0.98]"
-                            onClick={() => postAction(selectedMatch.id, 'start')}
-                          >
-                            <Swords className="h-3.5 w-3.5" /> MULAI TANDING
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
               ) : (
-                 <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-foreground/5 rounded-[3.5rem] bg-foreground/[0.01] transition-all duration-700 hover:bg-foreground/[0.02] group/empty">
-                  <div className="relative mb-10 transition-transform duration-700 group-hover/empty:scale-110">
-                    <Activity className="h-24 w-24 text-foreground opacity-[0.03]" />
-                    <div className="absolute inset-0 h-24 w-24 border border-foreground opacity-[0.05] rounded-full animate-ping" />
+                <div className="flex flex-col gap-6 flex-1 overflow-hidden">
+                  <div className="flex gap-4 items-center bg-card/20 p-4 rounded-[2rem] border border-foreground/[0.05]">
+                    <div className="flex-1">
+                      <select
+                        value={selectedWeightClassId || ""}
+                        onChange={(e) => setSelectedWeightClassId(Number(e.target.value))}
+                        className="w-full h-12 px-4 rounded-xl bg-secondary/40 border-none font-display italic text-base uppercase tracking-tight focus:outline-none focus:ring-1 focus:ring-foreground/10 text-foreground"
+                      >
+                        <option value="" disabled className="bg-background text-foreground">-- PILIH KELAS PERTANDINGAN --</option>
+                        {weightClasses.map((wc) => (
+                          <option key={wc.id} value={wc.id} className="bg-background text-foreground">
+                            {wc.category_name} ({wc.gender_display} - {wc.class_level_display})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={loadWeightClasses} 
+                      className={`h-12 w-12 rounded-full hover:bg-foreground/5 transition-all ${loadingWeightClasses ? 'animate-spin' : ''}`}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <h3 className="font-display text-3xl italic tracking-tight opacity-30">Pilih partai untuk dikelola</h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/30 mt-4">Antrean Sistem Sinkron</p>
+
+                  {loadingWeightClasses ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <Activity className="h-10 w-10 animate-pulse text-muted-foreground" />
+                    </div>
+                  ) : selectedWeightClass ? (
+                    <div className="flex-1 overflow-auto pr-4 custom-scrollbar bg-card/10 border border-foreground/[0.03] rounded-[2.5rem] p-6">
+                      <div className="flex gap-8 min-w-max min-h-[500px]">
+                        {roundsArray.map((roundNum) => {
+                          const roundMatches = matchesByRound[roundNum] || [];
+                          const sortedMatches = [...roundMatches].sort((a, b) => (a.bout_number || a.match_number) - (b.bout_number || b.match_number));
+                          return (
+                            <div key={roundNum} className="flex-1 min-w-[280px] max-w-[340px] flex flex-col gap-6">
+                              <div className="text-center font-display text-[10px] font-black italic tracking-[0.25em] text-muted-foreground/60 border-b border-foreground/5 pb-3 uppercase">
+                                {roundNum === maxRound ? "🏆 FINAL" : roundNum === maxRound - 1 ? "🔥 SEMIFINAL" : roundNum === maxRound - 2 ? "⚔️ PEREMPAT FINAL" : `BABAK ${roundNum}`}
+                              </div>
+                              <div className="flex-1 flex flex-col justify-around gap-6 py-4">
+                                {sortedMatches.map((match) => {
+                                  const redParticipant = match.red;
+                                  const blueParticipant = match.blue;
+                                  const isOngoing = match.status === "ongoing";
+                                  const isCalled = match.status === "called";
+                                  const isScheduled = match.status === "scheduled";
+                                  const isFinished = match.status === "finished";
+
+                                  return (
+                                    <div 
+                                      key={match.id}
+                                      className={`relative border rounded-[1.5rem] p-4 transition-all duration-300 bg-card/40 ${
+                                        isOngoing 
+                                          ? 'border-orange-500/40 shadow-lg shadow-orange-500/5 ring-1 ring-orange-500/20' 
+                                          : isCalled 
+                                            ? 'border-amber-500/30' 
+                                            : isFinished 
+                                              ? 'border-foreground/[0.05] opacity-80' 
+                                              : 'border-foreground/[0.08] hover:border-foreground/15'
+                                      }`}
+                                    >
+                                      {/* Match Number Badge */}
+                                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-foreground/5">
+                                        <span className="text-[10px] font-black font-display italic tracking-wide">
+                                          PARTAI #{match.bout_number || match.match_number}
+                                        </span>
+                                        {isOngoing ? (
+                                          <span className="flex items-center gap-1.5 text-[8px] font-black text-orange-500 uppercase tracking-widest">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-ping" /> ONGOING
+                                          </span>
+                                        ) : isCalled ? (
+                                          <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">CALLED</span>
+                                        ) : isFinished ? (
+                                          <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">FINISHED</span>
+                                        ) : (
+                                          <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest">SCHEDULED</span>
+                                        )}
+                                      </div>
+
+                                      {/* Competitors List */}
+                                      <div className="space-y-2">
+                                        {/* Red Corner */}
+                                        <div 
+                                          onClick={() => {
+                                            if (isFinished) return;
+                                            if (!redParticipant?.id) {
+                                              toast.info("Menunggu pemenang partai sebelumnya.");
+                                              return;
+                                            }
+                                            handleWinnerSelect(match.id, redParticipant.id, "red", redParticipant.nama);
+                                          }}
+                                          className={`group/row flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 ${
+                                            !isFinished && redParticipant?.id ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md' : ''
+                                          } ${
+                                            isFinished && match.winner_corner === 'red'
+                                              ? 'bg-red-500/10 border-red-500/30 font-bold'
+                                              : 'bg-background/40 border-foreground/[0.02]'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <div className="h-2 w-2 rounded-full bg-red-500" />
+                                            <div className="min-w-0 flex-1">
+                                              <p className={`text-xs truncate uppercase ${
+                                                isFinished && match.winner_corner === 'red' ? 'text-foreground font-bold' : 'text-foreground/80'
+                                              }`}>
+                                                {redParticipant?.nama || 'BYE / BELUM DITENTUKAN'}
+                                              </p>
+                                              <p className="text-[8px] text-muted-foreground/60 uppercase truncate">
+                                                {redParticipant?.klub || '-'}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          {isFinished && match.winner_corner === 'red' && (
+                                            <span className="text-[10px]">🏆</span>
+                                          )}
+                                        </div>
+
+                                        {/* Blue Corner */}
+                                        <div 
+                                          onClick={() => {
+                                            if (isFinished) return;
+                                            if (!blueParticipant?.id) {
+                                              toast.info("Menunggu pemenang partai sebelumnya.");
+                                              return;
+                                            }
+                                            handleWinnerSelect(match.id, blueParticipant.id, "blue", blueParticipant.nama);
+                                          }}
+                                          className={`group/row flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 ${
+                                            !isFinished && blueParticipant?.id ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md' : ''
+                                          } ${
+                                            isFinished && match.winner_corner === 'blue'
+                                              ? 'bg-blue-500/10 border-blue-500/30 font-bold'
+                                              : 'bg-background/40 border-foreground/[0.02]'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                            <div className="min-w-0 flex-1">
+                                              <p className={`text-xs truncate uppercase ${
+                                                isFinished && match.winner_corner === 'blue' ? 'text-foreground font-bold' : 'text-foreground/80'
+                                              }`}>
+                                                {blueParticipant?.nama || 'BYE / BELUM DITENTUKAN'}
+                                              </p>
+                                              <p className="text-[8px] text-muted-foreground/60 uppercase truncate">
+                                                {blueParticipant?.klub || '-'}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          {isFinished && match.winner_corner === 'blue' && (
+                                            <span className="text-[10px]">🏆</span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Match Quick Actions */}
+                                      {!isFinished && (
+                                        <div className="mt-3 pt-2 border-t border-foreground/5 flex gap-2">
+                                          {isScheduled && (
+                                            <Button 
+                                              size="sm"
+                                              variant="outline"
+                                              className="w-full h-8 text-[8px] font-black uppercase tracking-wider rounded-lg border-foreground/10 hover:bg-foreground/5"
+                                              onClick={() => handleCallMatch(match.id)}
+                                            >
+                                              Panggil
+                                            </Button>
+                                          )}
+                                          {(isScheduled || isCalled) && (
+                                            <Button 
+                                              size="sm"
+                                              className="w-full h-8 text-[8px] font-black uppercase tracking-wider rounded-lg bg-foreground text-background"
+                                              onClick={() => handleStartMatch(match.id)}
+                                            >
+                                              Mulai
+                                            </Button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-foreground/5 rounded-[3rem] bg-secondary/5 h-80">
+                      <Layout className="h-16 w-16 mb-4 text-muted-foreground/20" />
+                      <p className="font-display text-xl tracking-tight opacity-40">Pilih kelas tanding untuk melihat bagan</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Right Panel: Match Queue (55%) */}
-            <div className="w-[55%] flex flex-col gap-6 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2">
-                <div>
-                  <h2 className="text-2xl font-display italic tracking-tight uppercase">Antrean Pertandingan</h2>
-                  <p className="text-[10px] text-emerald-500 font-semibold uppercase tracking-widest mt-0.5 opacity-90 flex items-center gap-1.5 animate-pulse">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                    Atlet Hadir (READY) Otomatis Naik Ke Atas
-                  </p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={loadMatches} 
-                  className={`h-10 w-10 rounded-full hover:bg-foreground/5 transition-all ${loadingMatches ? 'animate-spin' : ''}`}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  {filteredMatches.map((match) => {
-                    const redParticipant = match.participants.find(p => p.corner === 'red');
-                    const blueParticipant = match.participants.find(p => p.corner === 'blue');
-                    const isRedReady = redParticipant?.athlete_detail?.is_checked_in === true;
-                    const isBlueReady = blueParticipant?.athlete_detail?.is_checked_in === true;
-                    const isBothReady = isRedReady && isBlueReady;
-                    const isPartialReady = (isRedReady || isBlueReady) && !isBothReady;
-
-                    return (
-                      <Card 
-                        key={match.id}
-                        className={`group cursor-pointer transition-all duration-500 border overflow-hidden rounded-[1.5rem] shadow-xl relative ${
-                          selectedMatchId === match.id 
-                            ? 'bg-foreground/[0.06] ring-2 ring-foreground/20 border-foreground/20' 
-                            : isBothReady 
-                              ? 'border-emerald-500/20 bg-emerald-500/[0.01] hover:bg-emerald-500/[0.03] hover:border-emerald-500/35 shadow-emerald-500/5'
-                              : isPartialReady
-                                ? 'border-amber-500/15 bg-amber-500/[0.005] hover:bg-amber-500/[0.02] hover:border-amber-500/30 shadow-amber-500/5'
-                                : 'border-foreground/[0.08] bg-card/40 hover:bg-card/60'
-                        }`}
-                        onClick={() => setSelectedMatchId(match.id)}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl font-display italic tracking-tight font-black">#{match.bout_number || match.match_number}</span>
-                              {isBothReady && (
-                                <Badge variant="outline" className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-emerald-500 text-white border-none shadow-[0_0_8px_rgba(16,185,129,0.35)] animate-pulse">
-                                  SIAP MAIN
-                                </Badge>
-                              )}
-                              {isPartialReady && (
-                                <Badge variant="outline" className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-amber-500/10 text-amber-500 border-amber-500/20">
-                                  PARTIAL
-                                </Badge>
-                              )}
-                            </div>
-                            <Badge variant="outline" className={`px-3 py-0.5 rounded-lg text-[8px] font-black tracking-widest uppercase border-foreground/10 ${match.status === 'called' ? 'bg-amber-500/10 text-amber-500' : 'bg-background/50'}`}>
-                              {match.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-2 mb-6">
-                            {/* Red Corner */}
-                            <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-300 ${
-                              isRedReady 
-                                ? 'bg-red-500/[0.05] border-red-500/20' 
-                                : 'bg-background/40 border-foreground/[0.03]'
-                            }`}>
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <div className={`h-2.5 w-2.5 rounded-full transition-all ${
-                                  isRedReady 
-                                    ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' 
-                                    : 'bg-red-500/30'
-                                }`} />
-                                <div className="min-w-0 flex-1">
-                                  <p className={`text-sm font-bold tracking-tight truncate uppercase ${
-                                    isRedReady ? 'text-foreground font-bold' : 'text-foreground/40 font-medium'
-                                  }`}>
-                                    {redParticipant?.athlete_detail?.nama || 'BYE'}
-                                  </p>
-                                  <p className="text-[8px] font-medium text-muted-foreground/60 uppercase truncate">
-                                    {redParticipant?.athlete_detail?.kontingen || 'INDIVIDUAL'}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className={`text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md ${
-                                isRedReady 
-                                  ? 'bg-emerald-500 text-white shadow-sm' 
-                                  : 'bg-foreground/5 text-foreground/30'
-                              }`}>
-                                {isRedReady ? "READY" : "ABSEN"}
-                              </span>
-                            </div>
-
-                            {/* Blue Corner */}
-                            <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-300 ${
-                              isBlueReady 
-                                ? 'bg-blue-500/[0.05] border-blue-500/20' 
-                                : 'bg-background/40 border-foreground/[0.03]'
-                            }`}>
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <div className={`h-2.5 w-2.5 rounded-full transition-all ${
-                                  isBlueReady 
-                                    ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' 
-                                    : 'bg-blue-500/30'
-                                }`} />
-                                <div className="min-w-0 flex-1">
-                                  <p className={`text-sm font-bold tracking-tight truncate uppercase ${
-                                    isBlueReady ? 'text-foreground font-bold' : 'text-foreground/40 font-medium'
-                                  }`}>
-                                    {blueParticipant?.athlete_detail?.nama || 'BYE'}
-                                  </p>
-                                  <p className="text-[8px] font-medium text-muted-foreground/60 uppercase truncate">
-                                    {blueParticipant?.athlete_detail?.kontingen || 'INDIVIDUAL'}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className={`text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md ${
-                                isBlueReady 
-                                  ? 'bg-emerald-500 text-white shadow-sm' 
-                                  : 'bg-foreground/5 text-foreground/30'
-                              }`}>
-                                {isBlueReady ? "READY" : "ABSEN"}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="pt-4 border-t border-foreground/[0.05] flex justify-between items-center">
-                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest truncate max-w-[150px] opacity-60">
-                              {match.group_name}
-                            </span>
-                            <ChevronRight className="h-4 w-4 opacity-20 group-hover:opacity-100 transition-opacity translate-x-0 group-hover:translate-x-1 duration-300" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                  
-                  {filteredMatches.length === 0 && (
-                    <div className="col-span-full h-80 flex flex-col items-center justify-center text-muted-foreground/10 bg-secondary/5 rounded-[3rem] border-4 border-dashed border-foreground/5">
-                      <Layout className="h-20 w-20 mb-4" />
-                      <p className="font-display text-2xl tracking-tight opacity-40">Belum ada partai</p>
-                      <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mt-2">Update otomatis aktif</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>

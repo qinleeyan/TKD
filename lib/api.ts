@@ -1,5 +1,5 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL;
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
 
 export function getAuthToken() {
   return typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;

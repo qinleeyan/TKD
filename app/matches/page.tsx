@@ -65,7 +65,7 @@ import {
 import { toast } from "sonner";
 import { useRealtime } from "@/hooks/use-realtime";
 
-type Category = "kyourugi" | "poomsae";
+type Category = "kyourugi" | "poomsae" | "all" | "0" | "1";
 type SortBy = "default" | "age" | "gender" | "weight" | "height";
 
 type AthleteCard = {
@@ -91,6 +91,9 @@ type GroupCard = {
   group_id?: number;
   group_name: string;
   match_category: Category;
+  category_label?: string;
+  category_name?: string;
+  status?: string;
   gender: number;
   gender_display?: string;
   sort_order: number;
@@ -110,6 +113,7 @@ type GroupCard = {
 type MatchParticipant = {
   athlete: number;
   athlete_detail?: AthleteCard;
+  athlete_name?: string;
   corner: "red" | "blue";
 };
 
@@ -554,7 +558,7 @@ export default function MatchesPage() {
       result = result.filter(g => {
         if (!g) return false;
         // Match either ID or label
-        const isPoomsaeGroup = (g.match_category === "poomsae" || g.match_category === 1 || g.match_category === "1");
+        const isPoomsaeGroup = (g.match_category === "poomsae" || (g.match_category as any) === 1 || g.match_category === "1");
         const isKyourugiGroup = !isPoomsaeGroup;
         
         if (selectedCategory === "0" || selectedCategory === "kyourugi") return isKyourugiGroup;
@@ -608,7 +612,7 @@ export default function MatchesPage() {
     try {
       const matchFlag = withMatches ? "1" : "0";
       const params = new URLSearchParams({
-        tournament_id: TOURNAMENT_ID,
+        tournament_id: String(TOURNAMENT_ID),
         category: selectedCategory,
         gender: mainGenderFilter,
         page_size: "200",

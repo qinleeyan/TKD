@@ -4,14 +4,14 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 
 interface Athlete {
-  id?: string;
+  id?: string | number;
   nama: string;
   klub?: string;
 }
 
 interface Match {
-  id?: string;
-  match_id?: string;
+  id?: string | number;
+  match_id?: string | number;
   nomor_partai?: number;
   bout_number?: number;
   athlete_a?: any;
