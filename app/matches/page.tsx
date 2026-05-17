@@ -1760,107 +1760,120 @@ export default function MatchesPage() {
                     return (
                       <Card
                         key={key}
-                        className="rounded-lg border-foreground/10 bg-background/70"
+                        className="rounded-xl border border-foreground/10 bg-background/50 hover:bg-background/80 shadow-sm transition-all duration-300 hover:shadow-md hover:border-foreground/20 flex flex-col h-full overflow-hidden"
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={() => draggedAthlete && moveAthlete(draggedAthlete.fromGroup, key, draggedAthlete.athleteId)}
                       >
-                        <CardHeader className="p-2 pb-1.5">
+                        <CardHeader className="p-3 pb-2.5 bg-foreground/[0.01]">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
                               <Checkbox
                                 checked={selectedGroupIds.includes(key)}
                                 onCheckedChange={() => toggleSelectGroup(key)}
-                                className="h-3.5 w-3.5"
+                                className="h-4 w-4 rounded-md"
                               />
-                              <div className="min-w-0">
-                                <CardTitle className="text-[13px] font-bold truncate leading-none">{group.group_name}</CardTitle>
+                              <div className="min-w-0 flex-1">
+                                <CardTitle className="text-[14px] font-extrabold truncate leading-tight tracking-tight text-foreground/90">{group.group_name}</CardTitle>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                   <GenderBadge gender={group.gender} />
-                                  <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.athletes.length} atlet</Badge>
-                                  <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
-                                  <Badge variant="outline" className="border-foreground/10 text-[8px] h-3.5 px-1">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
+                                  <Badge variant="outline" className="border-foreground/10 text-[9px] font-bold h-4 px-1.5 bg-foreground/[0.02] text-muted-foreground">{group.athletes.length} atlet</Badge>
+                                  <Badge variant="outline" className="border-foreground/10 text-[9px] font-bold h-4 px-1.5 bg-foreground/[0.02] text-muted-foreground">{group.weight_min ?? "-"}-{group.weight_max ?? "-"} kg</Badge>
+                                  <Badge variant="outline" className="border-foreground/10 text-[9px] font-bold h-4 px-1.5 bg-foreground/[0.02] text-muted-foreground">{group.age_min ?? "-"}-{group.age_max ?? "-"} th</Badge>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex gap-0.5 shrink-0">
-                              <Button size="icon" variant="ghost" className="h-6 w-6" title="Export Excel" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
-                                <Download className="h-3 w-3" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-6 w-6" title="Export PDF" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
-                                <FileText className="h-3 w-3" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-6 w-6" title="Export Gambar" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
-                                <ImagePlus className="h-3 w-3" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openGroupDialog(group)}>
-                                <Edit3 className="h-3 w-3" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-destructive transition-all" onClick={() => deleteGroup(group)}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
+                            <div className="flex gap-1 shrink-0 items-center">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-foreground/5 shrink-0 transition-colors">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52 rounded-xl p-1 shadow-xl border-foreground/10 bg-background/95 backdrop-blur-md">
+                                  <DropdownMenuItem className="rounded-lg gap-2.5 cursor-pointer py-2" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-excel/`, `bracket-${group.group_name}.xlsx`)}>
+                                    <Download className="h-4 w-4 text-emerald-500" />
+                                    <span className="text-xs font-bold">Export Excel</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-lg gap-2.5 cursor-pointer py-2" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-pdf/`, `bracket-${group.group_name}.pdf`)}>
+                                    <FileText className="h-4 w-4 text-rose-500" />
+                                    <span className="text-xs font-bold">Export PDF</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-lg gap-2.5 cursor-pointer py-2" onClick={() => downloadWithAuth(`/matches/weight_classes/${group.id}/export-image/`, `bracket-${group.group_name}.png`)}>
+                                    <ImagePlus className="h-4 w-4 text-blue-500" />
+                                    <span className="text-xs font-bold">Export Gambar</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="bg-foreground/5 my-1" />
+                                  <DropdownMenuItem className="rounded-lg gap-2.5 cursor-pointer py-2" onClick={() => openGroupDialog(group)}>
+                                    <Edit3 className="h-4 w-4 text-amber-500" />
+                                    <span className="text-xs font-bold">Edit Kelompok</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="rounded-lg gap-2.5 cursor-pointer py-2 text-destructive focus:text-destructive" onClick={() => deleteGroup(group)}>
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="text-xs font-bold">Hapus Kelompok</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         </CardHeader>
-                        <div className="flex flex-col border-t border-foreground/[0.03]">
+                        <div className="flex-1 flex flex-col border-t border-foreground/[0.04] bg-foreground/[0.005]">
                           {(group.athletes || []).map((athlete) => (
                             <div
                               key={athleteKey(athlete)}
                               draggable
                               onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
-                              className="group/athlete flex items-center gap-2 px-2 py-1 hover:bg-primary/[0.04] transition-colors border-b border-foreground/[0.02] last:border-0"
+                              className="group/athlete flex items-center gap-2 px-3 py-2.5 hover:bg-primary/[0.03] active:bg-primary/[0.06] transition-colors border-b border-foreground/[0.03] last:border-0"
                             >
-                              <GripVertical className="h-2.5 w-2.5 shrink-0 text-muted-foreground/10 group-hover/athlete:text-muted-foreground/30 cursor-grab active:cursor-grabbing" />
-                              <div className="flex-1 flex items-center justify-between min-w-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="font-bold text-[10px] truncate uppercase text-foreground/80">{athlete.nama}</span>
-                                  <span className="text-[7px] text-primary/70 font-black px-1 border border-primary/20 rounded-[2px] bg-primary/[0.03] uppercase">{sabukText(athlete)}</span>
+                              <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/15 group-hover/athlete:text-muted-foreground/35 cursor-grab active:cursor-grabbing transition-colors" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-[11px] uppercase text-foreground/90 truncate max-w-[150px]" title={athlete.nama}>{athlete.nama}</span>
+                                  <span className="text-[7px] text-primary/80 font-black px-1.5 py-0.5 border border-primary/20 rounded-[2px] bg-primary/[0.03] uppercase shrink-0">{sabukText(athlete)}</span>
                                 </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                  <div className="flex items-center gap-2 text-[8.5px] text-muted-foreground font-medium">
-                                    <span className="text-foreground/60">{athlete.umur}th</span>
-                                    <span className="opacity-20">•</span>
-                                    <span>{athlete.berat_kg}kg</span>
-                                    <span className="opacity-20">•</span>
-                                    <span>{athlete.tinggi_cm}cm</span>
-                                    <span className="opacity-20">•</span>
-                                    <span className="truncate max-w-[100px]">{athlete.klub || athlete.kontingen || "UMUM"}</span>
-                                  </div>
-                                  
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button size="icon" variant="ghost" className="h-5 w-5 opacity-30 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity">
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 shadow-xl border-foreground/10">
-                                      <DropdownMenuItem 
-                                        className="rounded-lg gap-2 cursor-pointer"
-                                        onClick={() => {
-                                          setMovingAthlete({ athlete, fromGroup: key });
-                                          setIsMoveDialogOpen(true);
-                                        }}
-                                      >
-                                        <MoveHorizontal className="h-3.5 w-3.5 text-blue-500" />
-                                        <span className="text-xs font-semibold">Pindahkan ke Kelompok</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                        className="rounded-lg gap-2 cursor-pointer"
-                                        onClick={() => editAthlete(athlete)}
-                                      >
-                                        <Pencil className="h-3.5 w-3.5 text-amber-500" />
-                                        <span className="text-xs font-semibold">Edit Data Atlet</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                        className="rounded-lg gap-2 cursor-pointer text-destructive focus:text-destructive"
-                                        onClick={() => removeAthlete(key, athleteKey(athlete))}
-                                      >
-                                        <X className="h-3.5 w-3.5" />
-                                        <span className="text-xs font-semibold">Hapus dari Kelompok</span>
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                                <div className="flex items-center gap-1.5 mt-1 text-[9px] text-muted-foreground/80 font-medium flex-wrap">
+                                  <span>{athlete.umur ? `${athlete.umur} th` : '-'}</span>
+                                  <span className="opacity-30">•</span>
+                                  <span>{athlete.berat_kg ? `${athlete.berat_kg} kg` : '-'}</span>
+                                  <span className="opacity-30">•</span>
+                                  <span>{athlete.tinggi_cm ? `${athlete.tinggi_cm} cm` : '-'}</span>
+                                  <span className="opacity-30">•</span>
+                                  <span className="truncate max-w-[120px] text-foreground/50" title={athlete.klub || athlete.kontingen || "UMUM"}>{athlete.klub || athlete.kontingen || "UMUM"}</span>
                                 </div>
                               </div>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 rounded-lg opacity-30 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity shrink-0">
+                                    <MoreVertical className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 shadow-xl border-foreground/10 bg-background/95 backdrop-blur-md">
+                                  <DropdownMenuItem 
+                                    className="rounded-lg gap-2 cursor-pointer py-1.5"
+                                    onClick={() => {
+                                      setMovingAthlete({ athlete, fromGroup: key });
+                                      setIsMoveDialogOpen(true);
+                                    }}
+                                  >
+                                    <MoveHorizontal className="h-3.5 w-3.5 text-blue-500" />
+                                    <span className="text-xs font-semibold">Pindahkan ke Kelompok</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="rounded-lg gap-2 cursor-pointer py-1.5"
+                                    onClick={() => editAthlete(athlete)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 text-amber-500" />
+                                    <span className="text-xs font-semibold">Edit Data Atlet</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="rounded-lg gap-2 cursor-pointer py-1.5 text-destructive focus:text-destructive"
+                                    onClick={() => removeAthlete(key, athleteKey(athlete))}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                    <span className="text-xs font-semibold">Hapus dari Kelompok</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           ))}
                         </div>
