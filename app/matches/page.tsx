@@ -1754,7 +1754,7 @@ export default function MatchesPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-3 grid-cols-1">
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                   {filteredGroups.map((group, index) => {
                     const key = groupKey(group, index);
                     return (
