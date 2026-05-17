@@ -107,9 +107,14 @@ export default function RegistrasiPage() {
           present: data.checked_in ?? 0,
           missing: (data.total_athletes ?? 0) - (data.checked_in ?? 0),
         });
+      } else {
+        // Jangan fallback ke stats lokal yang bisa stale dari cache
+        setSummaryStats({ total: 0, present: 0, missing: 0 });
       }
     } catch (e) {
       console.error("Gagal memuat ringkasan stats:", e);
+      // Set ke 0 bukan null, supaya tidak fallback ke local stats yang bisa salah
+      setSummaryStats({ total: 0, present: 0, missing: 0 });
     }
   }, []);
 
@@ -340,7 +345,10 @@ export default function RegistrasiPage() {
     );
   }
 
-  const displayStats = summaryStats || stats;
+  // KRUSIAL: Selalu prioritaskan summaryStats dari server (source of truth)
+  // Local stats dari groups bisa salah karena weight-classes di-cache 5 menit
+  // dan is_checked_in di cache bisa stale
+  const displayStats = summaryStats ?? stats;
   const presentPercent = displayStats.total > 0 ? Math.round((displayStats.present / displayStats.total) * 100) : 0;
 
   return (
