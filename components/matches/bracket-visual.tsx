@@ -72,32 +72,37 @@ export function BracketVisual({ athletes, matches }: BracketVisualProps) {
       )}
 
       {n === 3 && (
-        <div className="flex flex-col gap-6 py-2">
-          {/* BYE Slot */}
-          <div className="flex items-center">
-            <div className="w-1/2">{renderAthlete(athletes[0], 'blue')}</div>
-            <div className="w-[calc(50%+16px)] h-[2px] bg-foreground/20" />
-            <div className="w-[2px] h-[60px] bg-foreground/20" />
-          </div>
-          {/* SF Slot */}
-          <div className="relative flex flex-col gap-4 pl-[20%]">
-             <div className="flex items-center">
-               <div className="flex-1">{renderAthlete(athletes[1], 'blue')}</div>
-               <div className="w-4 h-[2px] bg-foreground/20" />
-             </div>
-             <div className="flex items-center">
-               <div className="flex-1">{renderAthlete(athletes[2], 'red')}</div>
-               <div className="w-4 h-[2px] bg-foreground/20" />
-             </div>
-             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-full bg-foreground/20" />
-             <div className="absolute -right-4 top-1/2 w-4 h-[2px] bg-foreground/20" />
-             {renderMatchNumber(matches.find(m => !m.is_final && m.match_number !== undefined ? m.match_number === 1 : m !== matches[matches.length-1]))}
-          </div>
-          {/* Final Connection */}
-          <div className="absolute right-0 top-[calc(50%-1px)] w-4 h-[2px] bg-foreground/20" />
-          <div className="absolute right-[-16px] top-1/2 -translate-y-1/2">
-             {renderMatchNumber(matches.find(m => m.is_final || m === matches[matches.length-1]))}
-          </div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-4">
+           {/* Left: Seeded / BYE Slot */}
+           <div className="relative flex flex-col gap-4">
+              {renderAthlete(athletes[0], 'blue')}
+              {/* BYE Placeholder */}
+              <div className="relative flex items-center gap-2 p-1.5 rounded border border-dashed border-foreground/10 bg-foreground/[0.02] text-muted-foreground/40 min-w-0">
+                <div className="h-full w-1 absolute left-0 top-0 rounded-l bg-muted-foreground/20" />
+                <p className="truncate text-[10px] font-bold pl-2 uppercase tracking-tight italic">BYE (Lolos Final)</p>
+              </div>
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-4 h-[2px] bg-foreground/20" />
+              <div className="absolute -right-4 top-1/4 h-1/2 w-[2px] bg-foreground/20" />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border border-foreground/10 rounded h-5 px-1.5 flex items-center justify-center z-10">
+                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-wider">BYE</span>
+              </div>
+           </div>
+           {/* Right: Semifinal match (Partai 1) */}
+           <div className="relative flex flex-col gap-4">
+              {renderAthlete(athletes[1], 'blue')}
+              {renderAthlete(athletes[2], 'red')}
+              <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-4 h-[2px] bg-foreground/20" />
+              <div className="absolute -right-4 top-1/4 h-1/2 w-[2px] bg-foreground/20" />
+              {renderMatchNumber(matches[0])}
+           </div>
+           {/* Final Link */}
+           <div className="col-span-2 relative h-4 mt-[-20px]">
+              <div className="absolute left-[calc(25%+16px)] right-[calc(25%+16px)] top-0 h-[60px] border-r-2 border-l-2 border-t-2 border-foreground/20 rounded-t-lg" />
+              <div className="absolute left-1/2 top-0 -translate-x-1/2 h-10 w-[2px] bg-foreground/20 mt-[-40px]" />
+              <div className="absolute left-1/2 top-0 -translate-x-1/2 mt-[-60px]">
+                {renderMatchNumber(matches.find(m => m.is_final || m === matches[matches.length-1]))}
+               </div>
+           </div>
         </div>
       )}
 
