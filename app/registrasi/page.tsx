@@ -35,7 +35,9 @@ type Athlete = {
 
 type GroupData = {
   id: number;
-  group_name: string;
+  group_name?: string;
+  category_name?: string;
+  class_level_display?: string;
   match_category: string | number;
   gender: number;
   gender_display?: string;
@@ -120,14 +122,19 @@ export default function RegistrasiPage() {
         const data = await res.json();
         const results: GroupData[] = Array.isArray(data) ? data : (data.results || []);
         const normalized = results
-          .map((g) => ({
-            id: g.id,
-            group_name: g.group_name || `Grup ${g.id}`,
-            gender: Number(g.gender ?? 0),
-            gender_display: g.gender_display,
-            match_category: g.match_category,
-            athletes: normalizeAthletes(g),
-          }))
+          .map((g) => {
+            const dispName = g.category_name 
+              ? `${g.category_name}${g.class_level_display ? ` (${g.class_level_display})` : ""}`
+              : g.group_name || `Grup ${g.id}`;
+            return {
+              id: g.id,
+              group_name: dispName,
+              gender: Number(g.gender ?? 0),
+              gender_display: g.gender_display,
+              match_category: g.match_category,
+              athletes: normalizeAthletes(g),
+            };
+          })
           .filter((g) => g.athletes.length > 0); // hide empty groups
         setGroups(normalized);
       }

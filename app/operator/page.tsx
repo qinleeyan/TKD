@@ -91,13 +91,38 @@ export default function OperatorPage() {
     [matches, selectedMatchId]
   );
 
-  const filteredMatches = useMemo(() => 
-    matches.filter(m => 
-      m.status !== 'finished' && 
-      m.participants.every(p => p.athlete_detail?.is_checked_in)
-    ),
-    [matches]
-  );
+  const filteredMatches = useMemo(() => {
+    const active = matches.filter(m => m.status !== 'finished');
+    return [...active].sort((a, b) => {
+      const checkInCount = (m: MatchRow) => {
+        return m.participants.filter(p => p.athlete_detail?.is_checked_in === true).length;
+      };
+      
+      const countA = checkInCount(a);
+      const countB = checkInCount(b);
+      
+      if (countA !== countB) {
+        return countB - countA; // Higher ready count first
+      }
+      
+      const statusWeight = (status: string) => {
+        if (status === 'ongoing') return 3;
+        if (status === 'called') return 2;
+        return 1;
+      };
+      
+      const weightA = statusWeight(a.status);
+      const weightB = statusWeight(b.status);
+      
+      if (weightA !== weightB) {
+        return weightB - weightA;
+      }
+      
+      const numA = a.bout_number || a.match_number || 0;
+      const numB = b.bout_number || b.match_number || 0;
+      return numA - numB;
+    });
+  }, [matches]);
 
   const loadCourts = useCallback(async () => {
     setLoadingCourts(true);
@@ -510,8 +535,11 @@ export default function OperatorPage() {
             <div className="w-[55%] flex flex-col gap-6 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2">
                 <div>
-                  <h2 className="text-2xl font-display italic tracking-tight uppercase">Partai Siap Tanding</h2>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5 opacity-60">Menampilkan partai dengan kedua atlet sudah hadir.</p>
+                  <h2 className="text-2xl font-display italic tracking-tight uppercase">Antrean Pertandingan</h2>
+                  <p className="text-[10px] text-emerald-500 font-semibold uppercase tracking-widest mt-0.5 opacity-90 flex items-center gap-1.5 animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    Atlet Hadir (READY) Otomatis Naik Ke Atas
+                  </p>
                 </div>
                 <Button 
                   variant="ghost" 
@@ -525,53 +553,129 @@ export default function OperatorPage() {
 
               <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  {filteredMatches.map((match) => (
-                    <Card 
-                      key={match.id}
-                      className={`group cursor-pointer transition-all duration-500 border border-foreground/[0.08] overflow-hidden rounded-[1.5rem] shadow-xl relative ${
-                        selectedMatchId === match.id 
-                          ? 'bg-foreground/[0.06] ring-2 ring-foreground/20' 
-                          : 'bg-card/40 hover:bg-card/60'
-                      }`}
-                      onClick={() => setSelectedMatchId(match.id)}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-center mb-6">
-                          <span className="text-xl font-display italic tracking-tight font-black">#{match.bout_number || match.match_number}</span>
-                          <Badge variant="outline" className={`px-3 py-0.5 rounded-lg text-[8px] font-black tracking-widest uppercase border-foreground/10 ${match.status === 'called' ? 'bg-amber-500/10 text-amber-500' : 'bg-background/50'}`}>
-                            {match.status}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2 mb-6">
-                          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-background/60 border border-foreground/[0.05] shadow-sm">
-                            <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
-                            <p className="text-sm font-bold tracking-tight truncate flex-1 uppercase">
-                              {match.participants.find(p => p.corner === 'red')?.athlete_detail?.nama || 'BYE'}
-                            </p>
+                  {filteredMatches.map((match) => {
+                    const redParticipant = match.participants.find(p => p.corner === 'red');
+                    const blueParticipant = match.participants.find(p => p.corner === 'blue');
+                    const isRedReady = redParticipant?.athlete_detail?.is_checked_in === true;
+                    const isBlueReady = blueParticipant?.athlete_detail?.is_checked_in === true;
+                    const isBothReady = isRedReady && isBlueReady;
+                    const isPartialReady = (isRedReady || isBlueReady) && !isBothReady;
+
+                    return (
+                      <Card 
+                        key={match.id}
+                        className={`group cursor-pointer transition-all duration-500 border overflow-hidden rounded-[1.5rem] shadow-xl relative ${
+                          selectedMatchId === match.id 
+                            ? 'bg-foreground/[0.06] ring-2 ring-foreground/20 border-foreground/20' 
+                            : isBothReady 
+                              ? 'border-emerald-500/20 bg-emerald-500/[0.01] hover:bg-emerald-500/[0.03] hover:border-emerald-500/35 shadow-emerald-500/5'
+                              : isPartialReady
+                                ? 'border-amber-500/15 bg-amber-500/[0.005] hover:bg-amber-500/[0.02] hover:border-amber-500/30 shadow-amber-500/5'
+                                : 'border-foreground/[0.08] bg-card/40 hover:bg-card/60'
+                        }`}
+                        onClick={() => setSelectedMatchId(match.id)}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-display italic tracking-tight font-black">#{match.bout_number || match.match_number}</span>
+                              {isBothReady && (
+                                <Badge variant="outline" className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-emerald-500 text-white border-none shadow-[0_0_8px_rgba(16,185,129,0.35)] animate-pulse">
+                                  SIAP MAIN
+                                </Badge>
+                              )}
+                              {isPartialReady && (
+                                <Badge variant="outline" className="px-2 py-0.5 rounded-lg text-[8px] font-black bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                  PARTIAL
+                                </Badge>
+                              )}
+                            </div>
+                            <Badge variant="outline" className={`px-3 py-0.5 rounded-lg text-[8px] font-black tracking-widest uppercase border-foreground/10 ${match.status === 'called' ? 'bg-amber-500/10 text-amber-500' : 'bg-background/50'}`}>
+                              {match.status}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-background/60 border border-foreground/[0.05] shadow-sm">
-                            <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
-                            <p className="text-sm font-bold tracking-tight truncate flex-1 uppercase">
-                              {match.participants.find(p => p.corner === 'blue')?.athlete_detail?.nama || 'BYE'}
-                            </p>
+                          
+                          <div className="space-y-2 mb-6">
+                            {/* Red Corner */}
+                            <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-300 ${
+                              isRedReady 
+                                ? 'bg-red-500/[0.05] border-red-500/20' 
+                                : 'bg-background/40 border-foreground/[0.03]'
+                            }`}>
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className={`h-2.5 w-2.5 rounded-full transition-all ${
+                                  isRedReady 
+                                    ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' 
+                                    : 'bg-red-500/30'
+                                }`} />
+                                <div className="min-w-0 flex-1">
+                                  <p className={`text-sm font-bold tracking-tight truncate uppercase ${
+                                    isRedReady ? 'text-foreground font-bold' : 'text-foreground/40 font-medium'
+                                  }`}>
+                                    {redParticipant?.athlete_detail?.nama || 'BYE'}
+                                  </p>
+                                  <p className="text-[8px] font-medium text-muted-foreground/60 uppercase truncate">
+                                    {redParticipant?.athlete_detail?.kontingen || 'INDIVIDUAL'}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md ${
+                                isRedReady 
+                                  ? 'bg-emerald-500 text-white shadow-sm' 
+                                  : 'bg-foreground/5 text-foreground/30'
+                              }`}>
+                                {isRedReady ? "READY" : "ABSEN"}
+                              </span>
+                            </div>
+
+                            {/* Blue Corner */}
+                            <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-300 ${
+                              isBlueReady 
+                                ? 'bg-blue-500/[0.05] border-blue-500/20' 
+                                : 'bg-background/40 border-foreground/[0.03]'
+                            }`}>
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className={`h-2.5 w-2.5 rounded-full transition-all ${
+                                  isBlueReady 
+                                    ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' 
+                                    : 'bg-blue-500/30'
+                                }`} />
+                                <div className="min-w-0 flex-1">
+                                  <p className={`text-sm font-bold tracking-tight truncate uppercase ${
+                                    isBlueReady ? 'text-foreground font-bold' : 'text-foreground/40 font-medium'
+                                  }`}>
+                                    {blueParticipant?.athlete_detail?.nama || 'BYE'}
+                                  </p>
+                                  <p className="text-[8px] font-medium text-muted-foreground/60 uppercase truncate">
+                                    {blueParticipant?.athlete_detail?.kontingen || 'INDIVIDUAL'}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md ${
+                                isBlueReady 
+                                  ? 'bg-emerald-500 text-white shadow-sm' 
+                                  : 'bg-foreground/5 text-foreground/30'
+                              }`}>
+                                {isBlueReady ? "READY" : "ABSEN"}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div className="pt-4 border-t border-foreground/[0.05] flex justify-between items-center">
-                          <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest truncate max-w-[150px] opacity-60">
-                            {match.group_name}
-                          </span>
-                          <ChevronRight className="h-4 w-4 opacity-20 group-hover:opacity-100 transition-opacity translate-x-0 group-hover:translate-x-1 duration-300" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          
+                          <div className="pt-4 border-t border-foreground/[0.05] flex justify-between items-center">
+                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest truncate max-w-[150px] opacity-60">
+                              {match.group_name}
+                            </span>
+                            <ChevronRight className="h-4 w-4 opacity-20 group-hover:opacity-100 transition-opacity translate-x-0 group-hover:translate-x-1 duration-300" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                   
                   {filteredMatches.length === 0 && (
                     <div className="col-span-full h-80 flex flex-col items-center justify-center text-muted-foreground/10 bg-secondary/5 rounded-[3rem] border-4 border-dashed border-foreground/5">
                       <Layout className="h-20 w-20 mb-4" />
-                      <p className="font-display text-2xl tracking-tight opacity-40">Belum ada partai siap</p>
+                      <p className="font-display text-2xl tracking-tight opacity-40">Belum ada partai</p>
                       <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mt-2">Update otomatis aktif</p>
                     </div>
                   )}
