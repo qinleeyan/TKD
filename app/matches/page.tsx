@@ -545,7 +545,9 @@ export default function MatchesPage() {
   }, [matches, matchSearch, matchStatusFilter]);
 
   const filteredGroups = useMemo(() => {
-    let result = Array.isArray(groups) ? [...groups] : [];
+    let result = Array.isArray(groups) 
+      ? groups.filter(g => g && Array.isArray(g.athletes) && g.athletes.length > 0) 
+      : [];
 
     // Client-side category filtering
     if (selectedCategory !== "all") {
@@ -701,10 +703,27 @@ export default function MatchesPage() {
     }
   }, []);
 
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadGroups(true),
+        loadMatches(true),
+        loadRounds(true),
+        loadAthletes(),
+        loadArenas(),
+      ]);
+    } catch (e) {
+      console.error("Gagal memuat seluruh data:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadGroups, loadMatches, loadRounds, loadAthletes, loadArenas]);
+
   // --- Data Loading Optimization (Targeted Fetching) ---
   useEffect(() => {
     loadGroups(true);
-    loadAthletes(true);
+    loadAthletes();
   }, [loadGroups, loadAthletes]);
 
   useEffect(() => {
@@ -1502,6 +1521,42 @@ export default function MatchesPage() {
     }
   };
 
+  const toggleAthleteCheckIn = async (athlete: AthleteCard) => {
+    if (!athlete.id) return;
+    const isHadir = !athlete.is_checked_in;
+    
+    // Optimistic local state update for zero lag
+    setAthletes(prev => (Array.isArray(prev) ? prev : []).map(a => a.id === athlete.id ? { ...a, is_checked_in: isHadir } : a));
+    setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => ({
+      ...g,
+      athletes: (g.athletes || []).map(a => a.id === athlete.id ? { ...a, is_checked_in: isHadir } : a)
+    })));
+    
+    try {
+      const res = await fetchWithAuth(`/athletes/${athlete.id}/checkin/`, {
+        method: "POST",
+        body: JSON.stringify({
+          is_checked_in: isHadir,
+          nama: athlete.nama,
+          kontingen: athlete.kontingen || athlete.klub || "Umum",
+          tournament_id: TOURNAMENT_ID,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("Gagal mengabsen.");
+      }
+    } catch (error) {
+      toast.error("Gagal memperbarui status kehadiran.");
+      // Rollback optimistic update on error
+      setAthletes(prev => (Array.isArray(prev) ? prev : []).map(a => a.id === athlete.id ? { ...a, is_checked_in: !isHadir } : a));
+      setGroups(prev => (Array.isArray(prev) ? prev : []).map(g => ({
+        ...g,
+        athletes: (g.athletes || []).map(a => a.id === athlete.id ? { ...a, is_checked_in: !isHadir } : a)
+      })));
+    }
+  };
+
+
   const deleteMatch = async (match: MatchRow) => {
     if (!window.confirm("Hapus pertandingan ini secara permanen?")) return;
     const res = await fetchWithAuth(`/matches/${match.id}/`, { method: "DELETE" });
@@ -1823,7 +1878,11 @@ export default function MatchesPage() {
                               key={athleteKey(athlete)}
                               draggable
                               onDragStart={() => setDraggedAthlete({ athleteId: athleteKey(athlete), fromGroup: key })}
-                              className="group/athlete flex items-center gap-2 px-3 py-2.5 hover:bg-primary/[0.03] active:bg-primary/[0.06] transition-colors border-b border-foreground/[0.03] last:border-0"
+                              className={`group/athlete flex items-center gap-2 px-3 py-2.5 hover:bg-primary/[0.03] active:bg-primary/[0.06] transition-colors border-b border-foreground/[0.03] last:border-0 border-l-2 ${
+                                athlete.is_checked_in
+                                  ? "border-l-emerald-500 bg-emerald-500/[0.005]"
+                                  : "border-l-transparent"
+                              }`}
                             >
                               <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/15 group-hover/athlete:text-muted-foreground/35 cursor-grab active:cursor-grabbing transition-colors" />
                               <div className="flex-1 min-w-0">
@@ -1842,6 +1901,26 @@ export default function MatchesPage() {
                                 </div>
                               </div>
                               
+                              {athlete.is_checked_in ? (
+                                <button
+                                  onClick={() => toggleAthleteCheckIn(athlete)}
+                                  className="mr-1 h-5 px-1.5 flex items-center gap-1 rounded bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 active:scale-95 transition-all text-[8px] font-bold tracking-wider uppercase shrink-0 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.1)] animate-fade-in"
+                                  title="Klik untuk ubah kehadiran"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                  Hadir
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => toggleAthleteCheckIn(athlete)}
+                                  className="mr-1 h-5 px-1.5 flex items-center gap-1 rounded bg-foreground/[0.02] text-muted-foreground/60 border border-foreground/10 hover:border-foreground/20 hover:bg-foreground/[0.05] hover:text-foreground active:scale-95 transition-all text-[8px] font-bold tracking-wider uppercase shrink-0"
+                                  title="Klik untuk absen hadir"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+                                  Absen
+                                </button>
+                              )}
+
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button size="icon" variant="ghost" className="h-6 w-6 rounded-lg opacity-30 group-hover/athlete:opacity-100 focus:opacity-100 transition-opacity shrink-0">
@@ -1861,7 +1940,7 @@ export default function MatchesPage() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     className="rounded-lg gap-2 cursor-pointer py-1.5"
-                                    onClick={() => editAthlete(athlete)}
+                                    onClick={() => openAthleteDialog(athlete)}
                                   >
                                     <Pencil className="h-3.5 w-3.5 text-amber-500" />
                                     <span className="text-xs font-semibold">Edit Data Atlet</span>
@@ -2245,6 +2324,7 @@ export default function MatchesPage() {
                       <TableHead className="font-bold text-xs uppercase tracking-wider">Info Fisik</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider">Kategori & Kelas</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider">Klub / Kontingen</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Kehadiran</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -2252,7 +2332,7 @@ export default function MatchesPage() {
                     {(loading || isAthletesLoading) ? (
                       [...Array(5)].map((_, i) => (
                         <TableRow key={i} className="animate-pulse">
-                          <TableCell colSpan={5} className="py-8">
+                          <TableCell colSpan={6} className="py-8">
                             <div className="flex gap-4">
                               <div className="h-10 w-10 bg-foreground/5 rounded-full" />
                               <div className="flex-1 space-y-2">
@@ -2265,7 +2345,7 @@ export default function MatchesPage() {
                       ))
                     ) : filteredAthleteList.length === 0 ? (
                       <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                           <div className="flex flex-col items-center gap-2">
                             <Search className="h-8 w-8 opacity-20" />
                             <p className="text-sm">Tidak ada atlet yang cocok dengan filter.</p>
@@ -2326,6 +2406,27 @@ export default function MatchesPage() {
                               <span className="font-bold text-sm text-blue-600 uppercase">{athlete.klub || "—"}</span>
                               <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{athlete.kontingen || "—"}</span>
                             </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            {athlete.is_checked_in ? (
+                              <button
+                                onClick={() => toggleAthleteCheckIn(athlete)}
+                                className="h-6 px-2.5 flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 active:scale-95 transition-all text-[10px] font-bold uppercase tracking-wider shadow-[0_0_8px_rgba(16,185,129,0.1)]"
+                                title="Klik untuk absen"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Hadir
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => toggleAthleteCheckIn(athlete)}
+                                className="h-6 px-2.5 flex items-center gap-1.5 rounded-full bg-foreground/[0.02] text-muted-foreground/60 border border-foreground/10 hover:border-foreground/20 hover:bg-foreground/[0.05] hover:text-foreground active:scale-95 transition-all text-[10px] font-bold uppercase tracking-wider"
+                                title="Klik untuk hadir"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                                Absen
+                              </button>
+                            )}
                           </TableCell>
                           <TableCell className="text-right py-4">
                             <div className="flex justify-end gap-1">
