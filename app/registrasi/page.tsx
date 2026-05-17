@@ -2,18 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigation } from "@/components/landing/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
-import { CheckCircle2, Loader2, RefreshCw, Search, UserCheck, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  CheckCircle2, ChevronDown, ChevronRight, Loader2, RefreshCw, Search,
+  UserCheck, Users, XCircle, UserX, Shield
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useRealtime } from "@/hooks/use-realtime";
 
+/* ─── Types ─── */
 type Athlete = {
   id: number;
   nama: string;
@@ -29,40 +33,66 @@ type Athlete = {
   gender_display?: string;
 };
 
-type Participant = {
-  athlete: number;
-  corner: "red" | "blue";
-  athlete_detail?: Athlete;
-};
-
-type MatchRow = {
+type GroupData = {
   id: number;
-  bout_number?: number;
-  match_number: number;
-  status: string;
-  group_name?: string;
-  participants: Participant[];
+  group_name: string;
+  match_category: string | number;
+  gender: number;
+  gender_display?: string;
+  athlete_count?: number;
+  athletes: Athlete[];
+  assignments?: any[];
 };
 
 const TOURNAMENT_ID = 1;
 
+/* ─── Helpers ─── */
+function normalizeAthletes(raw: GroupData): Athlete[] {
+  const assignments = Array.isArray(raw.assignments) ? raw.assignments : [];
+  if (assignments.length) {
+    return assignments.map((a: any) => ({
+      id: a.athlete_detail?.id ?? a.athlete ?? 0,
+      nama: a.athlete_detail?.nama ?? "-",
+      kontingen: a.athlete_detail?.kontingen ?? "",
+      umur: a.athlete_detail?.umur ?? 0,
+      gender: a.athlete_detail?.gender ?? 0,
+      tinggi_cm: a.athlete_detail?.tinggi_cm ?? 0,
+      berat_kg: a.athlete_detail?.berat_kg ?? 0,
+      is_checked_in: a.athlete_detail?.is_checked_in ?? false,
+      class_level: a.athlete_detail?.class_level ?? "",
+      klub: a.athlete_detail?.klub ?? "",
+      sabuk_display: a.athlete_detail?.sabuk_display ?? "",
+      gender_display: a.athlete_detail?.gender_display ?? "",
+    }));
+  }
+  return (raw.athletes || []).map((a: any) => ({
+    id: a.id ?? 0,
+    nama: a.nama ?? "-",
+    kontingen: a.kontingen ?? "",
+    umur: a.umur ?? 0,
+    gender: a.gender ?? 0,
+    tinggi_cm: a.tinggi_cm ?? 0,
+    berat_kg: a.berat_kg ?? 0,
+    is_checked_in: a.is_checked_in ?? false,
+    class_level: a.class_level ?? "",
+    klub: a.klub ?? "",
+    sabuk_display: a.sabuk_display ?? "",
+    gender_display: a.gender_display ?? "",
+  }));
+}
+
+/* ─── Main Component ─── */
 export default function RegistrasiPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [groups, setGroups] = useState<{ id: number; group_name: string; gender: number; gender_display?: string; match_category: string | number; athletes: Athlete[] }[]>([]);
   const [category, setCategory] = useState("kyourugi");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
-  const [rangeFrom, setRangeFrom] = useState("");
-  const [rangeTo, setRangeTo] = useState("");
-
-  // Pagination State
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalMatches, setTotalMatches] = useState(0);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
+  const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!authLoading) {
@@ -74,147 +104,165 @@ export default function RegistrasiPage() {
     }
   }, [user, authLoading, router]);
 
-  const [processingId, setProcessingId] = useState<number | null>(null);
-
-  const loadMatches = useCallback(async (silent = false) => {
+  /* ─── Load Groups (with athletes) ─── */
+  const loadGroups = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const queryParams = new URLSearchParams({
-        tournament: TOURNAMENT_ID.toString(),
+      const params = new URLSearchParams({
+        tournament_id: TOURNAMENT_ID.toString(),
         category,
-        page: page.toString(),
-        page_size: pageSize.toString()
+        page_size: "200",
       });
+      if (search) params.append("search", search);
 
-      if (search) queryParams.append('search', search);
-
-      const res = await fetchWithAuth(`/matches/?${queryParams.toString()}`);
+      const res = await fetchWithAuth(`/matches/weight-classes/?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setMatches(data.results || []);
-        setTotalMatches(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / pageSize));
+        const results: GroupData[] = Array.isArray(data) ? data : (data.results || []);
+        const normalized = results
+          .map((g) => ({
+            id: g.id,
+            group_name: g.group_name || `Grup ${g.id}`,
+            gender: Number(g.gender ?? 0),
+            gender_display: g.gender_display,
+            match_category: g.match_category,
+            athletes: normalizeAthletes(g),
+          }))
+          .filter((g) => g.athletes.length > 0); // hide empty groups
+        setGroups(normalized);
       }
-    } catch (error) {
-      console.error("Error loading matches:", error);
+    } catch (e) {
+      console.error("Gagal memuat grup:", e);
+      toast.error("Gagal memuat data grup.");
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [category, page, pageSize, search]);
+  }, [category, search]);
 
-  useEffect(() => {
-    loadMatches();
-  }, [loadMatches]);
+  useEffect(() => { loadGroups(); }, [loadGroups]);
 
-  const { isConnected, broadcast } = useRealtime(TOURNAMENT_ID, useCallback((event, data) => {
+  /* ─── WebSocket real-time ─── */
+  const { broadcast } = useRealtime(TOURNAMENT_ID, useCallback((event: string, data: any) => {
     if (event === "athlete_checkin") {
-        const athleteId = parseInt(data.id || data.athlete_id);
-        const isHadir = data.is_checked_in;
-        
-        setMatches(prev => prev.map(m => ({
-          ...m,
-          participants: m.participants.map(p => 
-            p.athlete === athleteId || p.athlete_detail?.id === athleteId
-            ? { ...p, athlete_detail: p.athlete_detail ? { ...p.athlete_detail, is_checked_in: isHadir } : p.athlete_detail }
-            : p
-          )
-        })));
-        return;
+      const athleteId = parseInt(data.id || data.athlete_id);
+      const isHadir = data.is_checked_in;
+      setGroups((prev) =>
+        prev.map((g) => ({
+          ...g,
+          athletes: g.athletes.map((a) =>
+            a.id === athleteId ? { ...a, is_checked_in: isHadir } : a
+          ),
+        }))
+      );
     }
-
-    if (event?.startsWith("match_") || event === "groups_confirmed" || event === "bulk_match_deleted") {
-        loadMatches(true);
+    if (event === "groups_confirmed" || event === "bulk_match_deleted") {
+      loadGroups(true);
     }
+  }, [loadGroups]));
 
-    if (event === "match_deleted" && data?.id) {
-      setMatches(prev => prev.filter(m => m.id !== data.id));
-    }
-  }, [loadMatches]));
-
-  const stats = useMemo(() => {
-    const participants = matches.flatMap((match) => match.participants);
-    const present = participants.filter((participant) => participant.athlete_detail?.is_checked_in).length;
-    return { total: participants.length, present, missing: participants.length - present };
-  }, [matches]);
-
+  /* ─── Toggle presence ─── */
   const setPresence = async (athlete: Athlete, hadir: boolean) => {
-    const athleteId = athlete.id;
-    if (processingId === athleteId) return;
-    
-    // 🚀 OPTIMISTIC CLIENT BROADCAST (Zero-Latency Path)
-    // Send notification to other admins IMMEDIATELY over WebSocket
+    if (processingIds.has(athlete.id)) return;
+
+    // Optimistic broadcast
     if (hadir) {
       broadcast("athlete_checkin", {
-        id: athleteId,
-        athlete_id: athleteId,
-        nama: athlete.nama,
-        kontingen: athlete.kontingen || "INDIVIDUAL",
-        is_checked_in: true,
-        msg_id: `client-opt-${athleteId}-${Date.now()}`
+        id: athlete.id, athlete_id: athlete.id, nama: athlete.nama,
+        kontingen: athlete.kontingen || "INDIVIDUAL", is_checked_in: true,
+        msg_id: `client-opt-${athlete.id}-${Date.now()}`
       });
     }
 
-    // ⚡ OPTIMISTIC LOCAL STATE UPDATE
-    setMatches(prev => prev.map(m => ({
-      ...m,
-      participants: m.participants.map(p => 
-        p.athlete === athleteId || p.athlete_detail?.id === athleteId
-        ? { ...p, athlete_detail: p.athlete_detail ? { ...p.athlete_detail, is_checked_in: hadir } : p.athlete_detail }
-        : p
-      )
-    })));
+    // Optimistic local update
+    setGroups((prev) =>
+      prev.map((g) => ({
+        ...g,
+        athletes: g.athletes.map((a) =>
+          a.id === athlete.id ? { ...a, is_checked_in: hadir } : a
+        ),
+      }))
+    );
 
-    if (hadir) {
-      toast.success(`${athlete.nama} ditandai hadir!`, {
-        id: `athlete-checkin-${athleteId}`
-      });
-    }
+    toast.success(`${athlete.nama} → ${hadir ? "Hadir ✓" : "Belum Hadir"}`, {
+      id: `checkin-${athlete.id}`, duration: 1500,
+    });
 
-    setProcessingId(athleteId);
-    
+    setProcessingIds((prev) => new Set(prev).add(athlete.id));
+
     try {
-        const res = await fetchWithAuth(`/athletes/${athleteId}/checkin/`, {
-          method: "POST",
-          body: JSON.stringify({ 
-            is_checked_in: hadir,
-            nama: athlete.nama,
-            kontingen: athlete.kontingen || "INDIVIDUAL",
-            tournament_id: TOURNAMENT_ID
-          }),
-        });
-        if (!res.ok) {
-           // Rollback
-           setMatches(prev => prev.map(m => ({
-             ...m,
-             participants: m.participants.map(p => 
-               p.athlete === athleteId || p.athlete_detail?.id === athleteId
-               ? { ...p, athlete_detail: p.athlete_detail ? { ...p.athlete_detail, is_checked_in: !hadir } : p.athlete_detail }
-               : p
-             )
-           })));
-           toast.error("Gagal sinkronisasi ke server.");
-        }
+      const res = await fetchWithAuth(`/athletes/${athlete.id}/checkin/`, {
+        method: "POST",
+        body: JSON.stringify({
+          is_checked_in: hadir, nama: athlete.nama,
+          kontingen: athlete.kontingen || "INDIVIDUAL",
+          tournament_id: TOURNAMENT_ID,
+        }),
+      });
+      if (!res.ok) {
+        // Rollback
+        setGroups((prev) =>
+          prev.map((g) => ({
+            ...g,
+            athletes: g.athletes.map((a) =>
+              a.id === athlete.id ? { ...a, is_checked_in: !hadir } : a
+            ),
+          }))
+        );
+        toast.error("Gagal sinkronisasi ke server.");
+      }
     } finally {
-        setProcessingId(null);
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(athlete.id);
+        return next;
+      });
     }
   };
 
-  const filteredMatches = matches.filter((match) => {
-    const text = `${match.bout_number || match.match_number} ${match.group_name || ""} ${match.participants.map((p) => p.athlete_detail?.nama || "").join(" ")}`.toLowerCase();
-    const matchesSearch = text.includes(search.toLowerCase());
-    if (!matchesSearch) return false;
-    if (filter === "called") return match.status === "called";
-    if (filter === "missing") return match.participants.some((participant) => !participant.athlete_detail?.is_checked_in);
-    if (filter === "ready") return match.participants.length > 0 && match.participants.every((participant) => participant.athlete_detail?.is_checked_in);
-    if (filter === "custom_range") {
-      const bout = match.bout_number || match.match_number;
-      const from = parseInt(rangeFrom) || 1;
-      const to = parseInt(rangeTo) || 9999;
-      return bout >= from && bout <= to;
-    }
-    return true;
-  });
+  /* ─── Toggle expand ─── */
+  const toggleExpand = (id: number) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
+  const expandAll = () => {
+    setExpandedGroups(new Set(filteredGroups.map((g) => g.id)));
+  };
+  const collapseAll = () => setExpandedGroups(new Set());
+
+  /* ─── Stats ─── */
+  const allAthletes = useMemo(() => groups.flatMap((g) => g.athletes), [groups]);
+  const stats = useMemo(() => {
+    const uniqueMap = new Map<number, Athlete>();
+    allAthletes.forEach((a) => uniqueMap.set(a.id, a));
+    const unique = Array.from(uniqueMap.values());
+    const present = unique.filter((a) => a.is_checked_in).length;
+    return { total: unique.length, present, missing: unique.length - present };
+  }, [allAthletes]);
+
+  /* ─── Filtering ─── */
+  const filteredGroups = useMemo(() => {
+    return groups.filter((g) => {
+      // Text search
+      if (search) {
+        const haystack = `${g.group_name} ${g.athletes.map((a) => `${a.nama} ${a.kontingen}`).join(" ")}`.toLowerCase();
+        if (!haystack.includes(search.toLowerCase())) return false;
+      }
+      // Status filter
+      if (filter === "ready") return g.athletes.length > 0 && g.athletes.every((a) => a.is_checked_in);
+      if (filter === "missing") return g.athletes.some((a) => !a.is_checked_in);
+      if (filter === "partial") {
+        const p = g.athletes.filter((a) => a.is_checked_in).length;
+        return p > 0 && p < g.athletes.length;
+      }
+      return true;
+    });
+  }, [groups, search, filter]);
+
+  /* ─── Auth loading ─── */
   if (authLoading || !authChecked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -223,253 +271,270 @@ export default function RegistrasiPage() {
     );
   }
 
+  const presentPercent = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+
   return (
     <main className="min-h-screen bg-background noise-overlay">
       <Navigation />
 
       <div className="relative z-10 mx-auto max-w-[1400px] px-6 pb-16 pt-28 lg:px-10">
-        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        {/* ─── Header ─── */}
+        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex-1">
-            <h1 className="mb-1 text-4xl font-display tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Registrasi Atlet</h1>
-            <p className="text-sm text-muted-foreground font-medium">Manajemen kehadiran atlet untuk setiap partai pertandingan.</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <Shield className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-display tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Absensi Kehadiran
+                </h1>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Kelola kehadiran atlet per kelas pertandingan
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 bg-secondary/30 p-2 rounded-2xl backdrop-blur-md border border-foreground/5 shadow-xl shadow-black/5">
-            <div className="relative w-full sm:w-[280px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+
+          {/* Filter bar */}
+          <div className="flex flex-wrap items-center gap-2 bg-secondary/30 p-2 rounded-2xl backdrop-blur-md border border-foreground/5 shadow-xl shadow-black/5">
+            <div className="relative w-full sm:w-[240px]">
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
               <Input
-                className="h-11 rounded-xl bg-background/50 border-none shadow-inner focus-visible:ring-1 focus-visible:ring-foreground/20 pl-10 transition-all hover:bg-background/80"
-                placeholder="Cari atlet, kontingen, atau partai..."
+                className="h-10 rounded-xl bg-background/50 border-none shadow-inner focus-visible:ring-1 focus-visible:ring-foreground/20 pl-9 text-sm"
+                placeholder="Cari atlet atau kelas..."
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            
-            <div className="flex items-center gap-2 h-11 bg-background/50 rounded-xl px-2 border border-foreground/5">
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-9 w-[120px] border-none bg-transparent shadow-none focus:ring-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="kyourugi">Kyourugi</SelectItem>
-                  <SelectItem value="poomsae">Poomsae</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="w-px h-6 bg-foreground/10 mx-1" />
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="h-9 w-[130px] border-none bg-transparent shadow-none focus:ring-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="custom_range">Filter Partai</SelectItem>
-                  <SelectItem value="called">Sedang Dipanggil</SelectItem>
-                  <SelectItem value="missing">Belum Hadir</SelectItem>
-                  <SelectItem value="ready">Siap Tanding</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {filter === "custom_range" && (
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-background/50 rounded-xl border border-foreground/5 animate-in fade-in slide-in-from-right-2 duration-300">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Partai</span>
-                <Input
-                  type="number"
-                  placeholder="Min"
-                  className="h-8 w-14 rounded-lg bg-background/50 border-none px-2 text-center text-xs font-bold shadow-inner"
-                  value={rangeFrom}
-                  onChange={(e) => setRangeFrom(e.target.value)}
-                />
-                <span className="text-muted-foreground/30 font-bold">-</span>
-                <Input
-                  type="number"
-                  placeholder="Max"
-                  className="h-8 w-14 rounded-lg bg-background/50 border-none px-2 text-center text-xs font-bold shadow-inner"
-                  value={rangeTo}
-                  onChange={(e) => setRangeTo(e.target.value)}
-                />
-              </div>
-            )}
-            
-            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl bg-background/50 hover:bg-background/80 transition-all active:scale-95 border border-foreground/5" onClick={() => loadMatches()}>
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <Select value={category} onValueChange={(v) => { setCategory(v); }}>
+              <SelectTrigger className="h-10 w-[120px] rounded-xl bg-background/50 border-none shadow-inner text-xs font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="kyourugi">Kyourugi</SelectItem>
+                <SelectItem value="poomsae">Poomsae</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="h-10 w-[140px] rounded-xl bg-background/50 border-none shadow-inner text-xs font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kelas</SelectItem>
+                <SelectItem value="ready">✅ Semua Hadir</SelectItem>
+                <SelectItem value="missing">❌ Ada Belum Hadir</SelectItem>
+                <SelectItem value="partial">🔶 Hadir Sebagian</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-background/50 hover:bg-background/80 border border-foreground/5" onClick={() => loadGroups()}>
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
 
-        <div className="mb-10 grid gap-4 grid-cols-1 sm:grid-cols-3">
-          <Stat title="Total Atlet Terdaftar" value={stats.total} icon={<UserCheck className="h-5 w-5 text-blue-500" />} />
-          <Stat title="Sudah Hadir (Ready)" value={stats.present} icon={<CheckCircle2 className="h-5 w-5 text-green-500" />} />
-          <Stat title="Belum Hadir" value={stats.missing} icon={<XCircle className="h-5 w-5 text-red-500" />} />
+        {/* ─── Stats Cards ─── */}
+        <div className="mb-8 grid gap-4 grid-cols-1 sm:grid-cols-4">
+          <StatCard title="Total Atlet" value={stats.total} icon={<Users className="h-5 w-5 text-blue-500" />} />
+          <StatCard title="Sudah Hadir" value={stats.present} icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} accent="emerald" />
+          <StatCard title="Belum Hadir" value={stats.missing} icon={<UserX className="h-5 w-5 text-red-500" />} accent="red" />
+          {/* Progress card */}
+          <Card className="relative overflow-hidden rounded-2xl border-none bg-white/5 backdrop-blur-xl shadow-xl">
+            <CardContent className="p-5">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Progress Kehadiran</p>
+              <p className="text-3xl font-display tracking-tight mb-3">{presentPercent}%</p>
+              <div className="h-2 w-full rounded-full bg-foreground/5 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700 ease-out"
+                  style={{ width: `${presentPercent}%` }}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {loading ? (
-          <div className="flex h-96 items-center justify-center">
-            <div className="relative">
-              <Loader2 className="h-12 w-12 animate-spin text-foreground/20" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-2 w-2 rounded-full bg-foreground animate-pulse" />
-              </div>
-            </div>
+        {/* ─── Expand/Collapse controls ─── */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-muted-foreground font-medium">
+            {filteredGroups.length} kelas ditemukan
+          </p>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" className="h-8 text-xs rounded-lg" onClick={expandAll}>
+              Buka Semua
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs rounded-lg" onClick={collapseAll}>
+              Tutup Semua
+            </Button>
           </div>
+        </div>
+
+        {/* ─── Group Cards ─── */}
+        {loading ? (
+          <div className="flex h-80 items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-foreground/20" />
+          </div>
+        ) : filteredGroups.length === 0 ? (
+          <Card className="rounded-3xl border-dashed border-2 border-foreground/10 bg-transparent">
+            <CardContent className="flex flex-col items-center justify-center min-h-[240px] text-muted-foreground">
+              <Search className="h-8 w-8 opacity-20 mb-3" />
+              <p className="text-lg font-medium">Tidak ada kelas ditemukan</p>
+              <p className="text-sm opacity-60">Coba ubah filter atau kata kunci pencarian.</p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
-            {filteredMatches.map((match) => (
-              <Card key={match.id} className="group relative overflow-hidden rounded-3xl border-none bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-2xl shadow-2xl transition-all hover:shadow-black/10 hover:-translate-y-1">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-500/20 via-foreground/5 to-blue-500/20 opacity-30" />
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
+          <div className="space-y-3">
+            {filteredGroups.map((group) => {
+              const isExpanded = expandedGroups.has(group.id);
+              const presentCount = group.athletes.filter((a) => a.is_checked_in).length;
+              const totalCount = group.athletes.length;
+              const allPresent = presentCount === totalCount;
+              const pct = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+
+              return (
+                <Card
+                  key={group.id}
+                  className={`relative overflow-hidden rounded-2xl border transition-all duration-300 ${
+                    allPresent
+                      ? "border-emerald-500/30 bg-emerald-500/[0.02] shadow-lg shadow-emerald-500/5"
+                      : "border-foreground/5 bg-white/[0.02] shadow-lg shadow-black/5"
+                  }`}
+                >
+                  {/* Progress bar top accent */}
+                  <div className="absolute top-0 left-0 w-full h-1">
+                    <div
+                      className={`h-full transition-all duration-700 ease-out rounded-r-full ${
+                        allPresent ? "bg-emerald-500" : pct > 0 ? "bg-amber-500" : "bg-foreground/10"
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  {/* ─── Group Header (clickable) ─── */}
+                  <button
+                    className="w-full flex items-center justify-between p-4 pt-5 cursor-pointer hover:bg-foreground/[0.02] transition-colors"
+                    onClick={() => toggleExpand(group.id)}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground/10 text-foreground shadow-inner">
-                        <span className="text-lg font-bold font-display">#{match.bout_number || match.match_number}</span>
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                        allPresent ? "bg-emerald-500/15 text-emerald-500" : "bg-foreground/5 text-foreground/50"
+                      }`}>
+                        {allPresent ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <Users className="h-4 w-4" />
+                        )}
                       </div>
-                      <div>
-                        <CardTitle className="text-lg font-display tracking-tight leading-tight">{match.group_name || "Match Info"}</CardTitle>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <Badge variant="outline" className="rounded-full px-3 py-0.5 border-foreground/10 text-[10px] font-bold uppercase tracking-wider bg-foreground/5">
-                            Partai {match.match_number}
-                          </Badge>
-                          <Badge className={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                            match.status === 'called' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
-                            match.status === 'ready' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
-                            'bg-foreground/5 text-muted-foreground border-foreground/10'
-                          }`}>
-                            {match.status}
+                      <div className="text-left">
+                        <p className="text-sm font-semibold tracking-tight leading-tight">{group.group_name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-bold uppercase rounded-md border-foreground/10">
+                            {group.gender === 0 ? "Putra" : "Putri"}
                           </Badge>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="grid gap-4 pt-0">
-                  {match.participants.map((participant) => (
-                    <div
-                      key={`${match.id}-${participant.corner}`}
-                      className={`group/athlete relative overflow-hidden rounded-xl border p-3 transition-all duration-300 ${
-                        participant.corner === "red"
-                          ? "border-red-500/20 bg-gradient-to-br from-red-500/10 to-red-600/[0.02] hover:bg-red-500/15"
-                          : "border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-600/[0.02] hover:bg-blue-500/15"
-                      } ${participant.athlete_detail?.is_checked_in ? 'ring-1 ring-green-500/20 shadow-lg shadow-green-500/5' : ''}`}
-                    >
-                      <div className="absolute -right-4 -bottom-4 opacity-5 group-hover/athlete:opacity-10 transition-opacity rotate-12">
-                        {participant.corner === "red" ? (
-                           <div className="h-24 w-24 rounded-full bg-red-500" />
-                        ) : (
-                           <div className="h-24 w-24 rounded-full bg-blue-500" />
-                        )}
+
+                    <div className="flex items-center gap-3">
+                      {/* Mini progress indicator */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-0.5">
+                          {group.athletes.map((a) => (
+                            <div
+                              key={a.id}
+                              className={`h-2.5 w-2.5 rounded-full border border-background transition-colors ${
+                                a.is_checked_in ? "bg-emerald-500" : "bg-foreground/15"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className={`text-xs font-bold tabular-nums ${
+                          allPresent ? "text-emerald-500" : presentCount > 0 ? "text-amber-500" : "text-muted-foreground"
+                        }`}>
+                          {presentCount}/{totalCount}
+                        </span>
                       </div>
 
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between relative z-10">
-                        <div className="flex items-center gap-3">
+                      <div className={`transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`}>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* ─── Expanded athlete list ─── */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="h-px bg-foreground/5 mb-3" />
+
+                      {group.athletes.map((athlete) => {
+                        const isProcessing = processingIds.has(athlete.id);
+                        return (
                           <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg ${
-                              participant.corner === "red" ? "bg-gradient-to-br from-red-500 to-red-600 shadow-red-500/20" : "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/20"
+                            key={athlete.id}
+                            className={`group/row relative flex items-center justify-between gap-3 rounded-xl p-3 transition-all duration-200 ${
+                              athlete.is_checked_in
+                                ? "bg-emerald-500/[0.06] border border-emerald-500/20"
+                                : "bg-foreground/[0.02] border border-foreground/5 hover:bg-foreground/[0.04]"
                             }`}
                           >
-                            <span className="text-xs font-black uppercase">{participant.corner[0]}</span>
-                          </div>
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-display text-lg tracking-tight font-semibold">{participant.athlete_detail?.nama || "-"}</p>
-                              <span className="text-[10px] font-bold text-blue-500 uppercase px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
-                                [{participant.athlete_detail?.klub || "UMUM"}]
-                              </span>
-                              {participant.athlete_detail?.is_checked_in && (
-                                <div className="flex items-center justify-center h-5 w-5 rounded-full bg-green-500/20 border border-green-500/30">
-                                  <CheckCircle2 className="h-3 w-3 text-green-500 fill-green-500" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80 mt-1">
-                              <span className="text-foreground/90">{participant.athlete_detail?.kontingen || "INDIVIDUAL"}</span>
-                              <span className="h-1 w-1 rounded-full bg-foreground/20" />
-                              <span className="text-foreground/60">{participant.athlete_detail?.class_level || 'Prestasi'}</span>
-                            </div>
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] font-black text-foreground uppercase italic shadow-sm">
-                                <span>{participant.athlete_detail?.sabuk_display || "PUTIH"}</span>
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {/* Status dot */}
+                              <div className={`relative flex h-3 w-3 shrink-0 ${athlete.is_checked_in ? "" : ""}`}>
+                                <div className={`h-3 w-3 rounded-full ${
+                                  athlete.is_checked_in ? "bg-emerald-500" : "bg-foreground/15"
+                                }`} />
+                                {athlete.is_checked_in && (
+                                  <div className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-30" />
+                                )}
                               </div>
-                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] font-bold text-muted-foreground uppercase">
-                                <span>{participant.athlete_detail?.umur} TH</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] font-bold text-muted-foreground uppercase">
-                                <span>{participant.athlete_detail?.berat_kg} KG</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] font-bold text-muted-foreground uppercase">
-                                <span>{participant.athlete_detail?.tinggi_cm} CM</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[9px] font-bold text-muted-foreground uppercase">
-                                <span>{participant.athlete_detail?.gender_display}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
 
-                        {participant.athlete_detail && (
-                          <div className="flex items-center gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold truncate">{athlete.nama}</p>
+                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                                    {athlete.kontingen || "INDIVIDUAL"}
+                                  </span>
+                                  {athlete.klub && (
+                                    <>
+                                      <span className="h-1 w-1 rounded-full bg-foreground/20" />
+                                      <span className="text-[10px] font-medium text-blue-500">{athlete.klub}</span>
+                                    </>
+                                  )}
+                                  <span className="h-1 w-1 rounded-full bg-foreground/20" />
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {athlete.umur}th · {athlete.berat_kg}kg · {athlete.tinggi_cm}cm
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Check-in button */}
                             <Button
-                              variant="ghost"
-                              className={`h-10 w-10 rounded-xl p-0 transition-all ${
-                                participant.athlete_detail.is_checked_in
-                                  ? "bg-green-500 text-white hover:bg-green-600 hover:text-white shadow-lg shadow-green-500/20"
-                                  : "bg-white/5 border border-white/10 hover:bg-white/10"
+                              size="sm"
+                              disabled={isProcessing}
+                              className={`shrink-0 h-9 rounded-xl text-xs font-bold gap-1.5 transition-all duration-200 ${
+                                athlete.is_checked_in
+                                  ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                                  : "bg-foreground/5 hover:bg-foreground/10 text-foreground border border-foreground/10"
                               }`}
-                              onClick={() => participant.athlete_detail && setPresence(participant.athlete_detail, !participant.athlete_detail?.is_checked_in)}
+                              onClick={() => setPresence(athlete, !athlete.is_checked_in)}
                             >
-                              {participant.athlete_detail.is_checked_in ? (
-                                <CheckCircle2 className="h-5 w-5" />
+                              {isProcessing ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : athlete.is_checked_in ? (
+                                <CheckCircle2 className="h-3.5 w-3.5" />
                               ) : (
-                                <UserCheck className="h-5 w-5 opacity-40 group-hover/athlete:opacity-100 transition-opacity" />
+                                <UserCheck className="h-3.5 w-3.5 opacity-50" />
                               )}
+                              {athlete.is_checked_in ? "Hadir" : "Absen"}
                             </Button>
                           </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
-            {filteredMatches.length === 0 && (
-              <Card className="rounded-3xl border-dashed border-2 border-foreground/10 bg-transparent lg:col-span-2">
-                <CardContent className="flex flex-col items-center justify-center min-h-[300px] text-muted-foreground">
-                  <div className="h-16 w-16 rounded-full bg-foreground/5 flex items-center justify-center mb-4">
-                    <Search className="h-6 w-6 opacity-20" />
-                  </div>
-                  <p className="text-lg font-medium">Tidak ada partai ditemukan</p>
-                  <p className="text-sm opacity-60">Coba ubah kata kunci pencarian atau filter Anda.</p>
-                </CardContent>
-              </Card>
-            )}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8 bg-background/50 backdrop-blur-sm p-4 rounded-2xl border border-foreground/5 lg:col-span-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="rounded-xl"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </Button>
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-mono font-bold tracking-tighter">
-                    HALAMAN {page} DARI {totalPages}
-                  </span>
-                  <span className="text-[8px] font-black opacity-40 uppercase tracking-widest">
-                    TOTAL {totalMatches} PARTAI
-                  </span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="rounded-xl"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </div>
-            )}
+                  )}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
@@ -477,20 +542,19 @@ export default function RegistrasiPage() {
   );
 }
 
-function Stat({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
+/* ─── Stat Card Component ─── */
+function StatCard({ title, value, icon, accent }: { title: string; value: number; icon: React.ReactNode; accent?: string }) {
   return (
-    <Card className="relative overflow-hidden rounded-3xl border-none bg-white/5 backdrop-blur-xl shadow-xl">
-      <div className="absolute top-0 right-0 p-4 opacity-10">
-        {icon}
-      </div>
-      <CardContent className="p-6">
-        <div className="flex items-center gap-3 mb-2">
-           <div className="p-2 rounded-xl bg-white/5">
-            {icon}
-           </div>
-           <p className="text-sm font-medium text-muted-foreground">{title}</p>
+    <Card className="relative overflow-hidden rounded-2xl border-none bg-white/5 backdrop-blur-xl shadow-xl">
+      <div className="absolute top-0 right-0 p-4 opacity-10">{icon}</div>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="p-1.5 rounded-lg bg-white/5">{icon}</div>
+          <p className="text-xs font-medium text-muted-foreground">{title}</p>
         </div>
-        <p className="text-4xl font-display tracking-tight">{value}</p>
+        <p className={`text-3xl font-display tracking-tight ${
+          accent === "emerald" ? "text-emerald-500" : accent === "red" ? "text-red-500" : ""
+        }`}>{value}</p>
       </CardContent>
     </Card>
   );
