@@ -148,102 +148,85 @@ function StatsView() {
 
   return (
     <div className="flex flex-col h-full bg-background animate-in fade-in duration-500">
-      <div className="p-4 sm:p-6 space-y-6 overflow-y-auto">
+      <div className="p-4 sm:p-6 space-y-8 overflow-y-auto">
+        
         {/* Participation Section */}
-        <section className="space-y-3">
-          <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
-            Participation
-          </h2>
-          <div className="grid gap-3">
-            <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl border border-foreground/5 transition-all hover:bg-secondary/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
-                  <Users className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-semibold text-foreground/70">Total Atlet</span>
-              </div>
-              <span className="text-xl font-bold font-display">{stats.total_athletes}</span>
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold tracking-tight text-foreground/80 uppercase">
+              Participation
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col p-4 bg-background border border-foreground/10 shadow-sm rounded-xl hover:border-foreground/20 transition-colors">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Total Atlet</span>
+              <span className="text-2xl font-bold font-display tracking-tight">{stats.total_athletes}</span>
             </div>
-
-            <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl border border-foreground/5 transition-all hover:bg-secondary/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                  <Activity className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-semibold text-foreground/70">Check-in Hadir</span>
-              </div>
-              <span className="text-xl font-bold font-display text-emerald-600">{stats.checked_in}</span>
+            
+            <div className="flex flex-col p-4 bg-background border border-foreground/10 shadow-sm rounded-xl hover:border-foreground/20 transition-colors">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Check-in</span>
+              <span className="text-2xl font-bold font-display tracking-tight text-emerald-600">{stats.checked_in}</span>
             </div>
           </div>
         </section>
 
         {/* Live Match Progress Section */}
-        <section className="space-y-3 pt-2">
-          <h2 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">
-            Live Match Progress
-          </h2>
-          <div className="grid gap-3">
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 px-1">
+            <Activity className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold tracking-tight text-foreground/80 uppercase">
+              Live Match Progress
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
             {/* Total Matches - Primary Stat */}
-            <div className="flex items-center justify-between p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 transition-all hover:bg-amber-500/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600">
-                  <Trophy className="w-5 h-5" />
-                </div>
-                <span className="text-xs font-semibold text-amber-900/70">Total Partai</span>
+            <div className="col-span-2 flex items-center justify-between p-5 bg-foreground/[0.03] border border-foreground/10 shadow-sm rounded-xl transition-colors hover:bg-foreground/[0.05]">
+              <div className="flex flex-col">
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Partai</span>
+                <span className="text-3xl font-bold font-display tracking-tight">{stats.total_matches}</span>
               </div>
-              <span className="text-xl font-bold font-display text-amber-700">{stats.total_matches}</span>
+              <div className="p-3 bg-background rounded-lg border border-foreground/10 shadow-sm">
+                <Trophy className="w-6 h-6 text-foreground/70" />
+              </div>
             </div>
 
             {/* Live Stats Row */}
-            <div className="grid grid-cols-1 gap-3">
-              {/* Sedang Berlangsung */}
-              <div className="flex items-center justify-between p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 transition-all hover:bg-blue-500/10">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-600">
-                      <Play className="w-5 h-5 fill-current" />
-                    </div>
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold text-blue-900/70">Sedang Tanding</span>
-                </div>
-                <span className="text-xl font-bold font-display text-blue-700">{stats.ongoing}</span>
+            <div className="flex flex-col p-4 bg-background border border-blue-500/30 shadow-sm rounded-xl transition-colors relative overflow-hidden group">
+              <div className="absolute top-4 right-4">
+                <span className="flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
               </div>
+              <span className="text-[11px] font-medium text-blue-600 uppercase tracking-wider mb-2">Sedang Tanding</span>
+              <span className="text-2xl font-bold font-display tracking-tight text-blue-700">{stats.ongoing}</span>
+            </div>
 
-              {/* Sisa Partai */}
-              <div className="flex items-center justify-between p-4 bg-foreground/[0.03] rounded-2xl border border-foreground/5 transition-all hover:bg-foreground/[0.05]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center text-muted-foreground">
-                    <Loader2 className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-semibold text-foreground/60">Sisa Partai</span>
-                </div>
-                <span className="text-xl font-bold font-display">{stats.pending}</span>
-              </div>
+            <div className="flex flex-col p-4 bg-background border border-foreground/10 shadow-sm rounded-xl hover:border-foreground/20 transition-colors">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Sisa Partai</span>
+              <span className="text-2xl font-bold font-display tracking-tight">{stats.pending}</span>
+            </div>
 
-              {/* Partai Selesai */}
-              <div className="flex items-center justify-between p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 transition-all hover:bg-emerald-500/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-semibold text-emerald-900/70">Partai Selesai</span>
-                </div>
-                <span className="text-xl font-bold font-display text-emerald-700">{stats.finished}</span>
+            {/* Partai Selesai */}
+            <div className="col-span-2 flex items-center justify-between p-4 bg-emerald-500/5 border border-emerald-500/20 shadow-sm rounded-xl transition-colors hover:bg-emerald-500/10">
+              <div className="flex flex-col">
+                <span className="text-[11px] font-medium text-emerald-600/80 uppercase tracking-wider mb-1">Partai Selesai</span>
+                <span className="text-2xl font-bold font-display tracking-tight text-emerald-600">{stats.finished}</span>
               </div>
+              <CheckCircle2 className="w-5 h-5 text-emerald-600/50" />
             </div>
           </div>
         </section>
       </div>
 
       {/* Sync Status Footer */}
-      <div className="mt-auto p-4 border-t border-foreground/5 bg-foreground/[0.01]">
-        <div className="flex items-center justify-center gap-2">
+      <div className="mt-auto p-4 border-t border-foreground/10 bg-background/50 backdrop-blur flex justify-center">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground/[0.03] border border-foreground/5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
             Live Update Active • 10s
           </p>
         </div>
