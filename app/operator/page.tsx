@@ -85,8 +85,7 @@ export default function OperatorPage() {
   const [loadingCourts, setLoadingCourts] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"queue" | "bracket">("queue");
-  const [weightClasses, setWeightClasses] = useState<any[]>([]);
+    const [weightClasses, setWeightClasses] = useState<any[]>([]);
   const [loadingWeightClasses, setLoadingWeightClasses] = useState(false);
   const [selectedWeightClassId, setSelectedWeightClassId] = useState<number | null>(null);
   
@@ -125,30 +124,6 @@ export default function OperatorPage() {
   const filteredMatches = useMemo(() => {
     const active = matches.filter(m => m.status !== 'finished');
     return [...active].sort((a, b) => {
-      const checkInCount = (m: MatchRow) => {
-        return m.participants.filter(p => p.athlete_detail?.is_checked_in === true).length;
-      };
-      
-      const countA = checkInCount(a);
-      const countB = checkInCount(b);
-      
-      if (countA !== countB) {
-        return countB - countA; // Higher ready count first
-      }
-      
-      const statusWeight = (status: string) => {
-        if (status === 'ongoing') return 3;
-        if (status === 'called') return 2;
-        return 1;
-      };
-      
-      const weightA = statusWeight(a.status);
-      const weightB = statusWeight(b.status);
-      
-      if (weightA !== weightB) {
-        return weightB - weightA;
-      }
-      
       const numA = a.bout_number || a.match_number || 0;
       const numB = b.bout_number || b.match_number || 0;
       return numA - numB;
@@ -545,157 +520,114 @@ export default function OperatorPage() {
         ) : (
           <div className="flex-1 flex gap-8 overflow-hidden pb-8">
             {/* Left Panel: Match Control (45%) */}
-            {activeTab === 'queue' && (
-              <div className="w-[45%] flex flex-col gap-6">
-                <div className="flex items-center justify-between p-6 bg-card/40 backdrop-blur-3xl rounded-[2rem] border border-foreground/[0.08] shadow-2xl">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setCourtConfig(null)}
-                    className="gap-2 rounded-xl border-foreground/10 hover:bg-foreground/5 px-4 h-10 text-[10px] font-bold uppercase tracking-widest transition-all"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" /> Kembali
-                  </Button>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-0.5 opacity-60">{courtConfig.status}</p>
-                    <h2 className="text-2xl font-display italic tracking-tight uppercase leading-none">{courtConfig.name}</h2>
-                  </div>
+            <div className="w-[45%] flex flex-col gap-6">
+              <div className="flex items-center justify-between p-6 bg-card/40 backdrop-blur-3xl rounded-[2rem] border border-foreground/[0.08] shadow-2xl">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setCourtConfig(null)}
+                  className="gap-2 rounded-xl border-foreground/10 hover:bg-foreground/5 px-4 h-10 text-[10px] font-bold uppercase tracking-widest transition-all"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Kembali
+                </Button>
+                <div className="text-right">
+                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-0.5 opacity-60">{courtConfig.status}</p>
+                  <h2 className="text-2xl font-display italic tracking-tight uppercase leading-none">{courtConfig.name}</h2>
                 </div>
-
-                {selectedMatch ? (
-                  <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="grid grid-cols-2 gap-4">
-                      <AthleteControlCard 
-                        participant={selectedMatch.participants.find(p => p.corner === "red")} 
-                        corner="red" 
-                        onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "red")!)}
-                      />
-                      <AthleteControlCard 
-                        participant={selectedMatch.participants.find(p => p.corner === "blue")} 
-                        corner="blue" 
-                        onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "blue")!)}
-                      />
-                    </div>
-
-                    <Card className="bg-card/40 border border-foreground/[0.08] shadow-2xl rounded-[2.5rem] overflow-hidden backdrop-blur-3xl">
-                      <CardHeader className="p-8 pb-2">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <CardTitle className="text-xl font-display italic tracking-tight uppercase">Detail Pertandingan</CardTitle>
-                          </div>
-                          <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-foreground text-background shadow-xl">
-                            <span className="text-xl font-black font-display tracking-tighter">#{selectedMatch.bout_number || selectedMatch.match_number}</span>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-8 pt-2 space-y-8">
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-foreground/[0.05]">
-                          <div>
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">KELAS</p>
-                            <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.group_name || "-"}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">STATUS</p>
-                            <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.status}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                          {selectedMatch.status === 'scheduled' && (
-                            <Button 
-                              className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-background border border-foreground/10 hover:bg-foreground hover:text-background transition-all shadow-xl active:scale-[0.98]"
-                              onClick={() => postAction(selectedMatch.id, 'call')}
-                            >
-                              <Megaphone className="h-3.5 w-3.5" /> PANGGIL ATLET
-                            </Button>
-                          )}
-                          {(selectedMatch.status === 'called' || selectedMatch.status === 'scheduled') && (
-                            <Button 
-                              className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-foreground text-background hover:opacity-90 transition-all shadow-2xl active:scale-[0.98]"
-                              onClick={() => postAction(selectedMatch.id, 'start')}
-                            >
-                              <Swords className="h-3.5 w-3.5" /> MULAI TANDING
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                ) : (
-                   <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-foreground/5 rounded-[3.5rem] bg-foreground/[0.01] transition-all duration-700 hover:bg-foreground/[0.02] group/empty">
-                    <div className="relative mb-10 transition-transform duration-700 group-hover/empty:scale-110">
-                      <Activity className="h-24 w-24 text-foreground opacity-[0.03]" />
-                      <div className="absolute inset-0 h-24 w-24 border border-foreground opacity-[0.05] rounded-full animate-ping" />
-                    </div>
-                    <h3 className="font-display text-3xl italic tracking-tight opacity-30">Pilih partai untuk dikelola</h3>
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/30 mt-4">Antrean Sistem Sinkron</p>
-                  </div>
-                )}
               </div>
-            )}
+
+              {selectedMatch ? (
+                <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-2 gap-4">
+                    <AthleteControlCard 
+                      participant={selectedMatch.participants.find(p => p.corner === "red")} 
+                      corner="red" 
+                      onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "red")!)}
+                    />
+                    <AthleteControlCard 
+                      participant={selectedMatch.participants.find(p => p.corner === "blue")} 
+                      corner="blue" 
+                      onWin={() => finishMatch(selectedMatch.id, selectedMatch.participants.find(p => p.corner === "blue")!)}
+                    />
+                  </div>
+
+                  <Card className="bg-card/40 border border-foreground/[0.08] shadow-2xl rounded-[2.5rem] overflow-hidden backdrop-blur-3xl">
+                    <CardHeader className="p-8 pb-2">
+                      <div justify-between items-center className="flex justify-between items-center">
+                        <div>
+                          <CardTitle className="text-xl font-display italic tracking-tight uppercase">Detail Pertandingan</CardTitle>
+                        </div>
+                        <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-foreground text-background shadow-xl">
+                          <span className="text-xl font-black font-display tracking-tighter">#{selectedMatch.bout_number || selectedMatch.match_number}</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-8 pt-2 space-y-8">
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-foreground/[0.05]">
+                        <div>
+                          <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">KELAS</p>
+                          <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.group_name || "-"}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1 opacity-60">STATUS</p>
+                          <p className="font-display text-sm tracking-tight italic uppercase">{selectedMatch.status}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4">
+                        {selectedMatch.status === 'scheduled' && (
+                          <Button 
+                            className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-background border border-foreground/10 hover:bg-foreground hover:text-background transition-all shadow-xl active:scale-[0.98]"
+                            onClick={() => postAction(selectedMatch.id, 'call')}
+                          >
+                            <Megaphone className="h-3.5 w-3.5" /> PANGGIL ATLET
+                          </Button>
+                        )}
+                        {(selectedMatch.status === 'called' || selectedMatch.status === 'scheduled') && (
+                          <Button 
+                            className="flex-1 h-14 text-[10px] font-black italic tracking-[0.2em] gap-2 rounded-xl bg-foreground text-background hover:opacity-90 transition-all shadow-2xl active:scale-[0.98]"
+                            onClick={() => postAction(selectedMatch.id, 'start')}
+                          >
+                            <Swords className="h-3.5 w-3.5" /> MULAI TANDING
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                 <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-foreground/5 rounded-[3.5rem] bg-foreground/[0.01] transition-all duration-700 hover:bg-foreground/[0.02] group/empty">
+                  <div className="relative mb-10 transition-transform duration-700 group-hover/empty:scale-110">
+                    <Activity className="h-24 w-24 text-foreground opacity-[0.03]" />
+                    <div className="absolute inset-0 h-24 w-24 border border-foreground opacity-[0.05] rounded-full animate-ping" />
+                  </div>
+                  <h3 className="font-display text-3xl italic tracking-tight opacity-30">Pilih partai untuk dikelola</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/30 mt-4">Antrean Sistem Sinkron</p>
+                </div>
+              )}
+            </div>
 
             {/* Right Panel: Match Queue (55% or 100%) */}
-            <div className={`${activeTab === 'queue' ? 'w-[55%]' : 'w-full'} flex flex-col gap-6 overflow-hidden transition-all duration-500`}>
+            <div className="w-[55%] flex flex-col gap-6 overflow-hidden transition-all duration-500">
               <div className="flex items-center justify-between px-4 py-2">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-4">
-                    {activeTab === 'bracket' && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setCourtConfig(null)}
-                        className="gap-2 rounded-xl border-foreground/10 hover:bg-foreground/5 px-4 h-9 text-[9px] font-bold uppercase tracking-widest transition-all"
-                      >
-                        <ArrowLeft className="h-3 w-3" /> Dashboard
-                      </Button>
-                    )}
+                    
                     <h2 className="text-2xl font-display italic tracking-tight uppercase">
-                      {activeTab === 'queue' ? 'Antrean Pertandingan' : `${courtConfig.name} - Bagan Bracket`}
+                      Antrean Pertandingan
                     </h2>
                   </div>
-                  {activeTab === 'queue' ? (
-                    <p className="text-[10px] text-emerald-500 font-semibold uppercase tracking-widest mt-0.5 opacity-90 flex items-center gap-1.5 animate-pulse">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                      Atlet Hadir (READY) Otomatis Naik Ke Atas
-                    </p>
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mt-0.5 opacity-90">
-                      Kelola status & tandai pemenang langsung dari bagan visual
-                    </p>
-                  )}
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mt-0.5 opacity-90">Sesuai urutan Bagan/Bracket</p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* Modern premium tab buttons */}
-                  <div className="flex bg-foreground/5 p-1 rounded-xl gap-1">
-                    <button 
-                      onClick={() => setActiveTab("queue")} 
-                      className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-300 ${activeTab === 'queue' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                      Antrean
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab("bracket")} 
-                      className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-300 ${activeTab === 'bracket' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                      Bagan Bracket
-                    </button>
-                  </div>
+                  
 
-                  {activeTab === 'queue' && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={loadMatches} 
-                      className={`h-10 w-10 rounded-full hover:bg-foreground/5 transition-all ${loadingMatches ? 'animate-spin' : ''}`}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="icon" onClick={loadMatches} className={`h-10 w-10 rounded-full hover:bg-foreground/5 transition-all ${loadingMatches ? 'animate-spin' : ''}`}><RefreshCw className="h-4 w-4" /></Button>
                 </div>
               </div>
 
-              {activeTab === "queue" ? (
+              
                 <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {filteredMatches.map((match) => {
@@ -826,204 +758,7 @@ export default function OperatorPage() {
                     )}
                   </div>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-6 flex-1 overflow-hidden">
-                  <div className="flex gap-4 items-center bg-card/20 p-4 rounded-[2rem] border border-foreground/[0.05]">
-                    <div className="flex-1">
-                      <select
-                        value={selectedWeightClassId || ""}
-                        onChange={(e) => setSelectedWeightClassId(Number(e.target.value))}
-                        className="w-full h-12 px-4 rounded-xl bg-secondary/40 border-none font-display italic text-base uppercase tracking-tight focus:outline-none focus:ring-1 focus:ring-foreground/10 text-foreground"
-                      >
-                        <option value="" disabled className="bg-background text-foreground">-- PILIH KELAS PERTANDINGAN --</option>
-                        {weightClasses.map((wc) => (
-                          <option key={wc.id} value={wc.id} className="bg-background text-foreground">
-                            {wc.category_name} ({wc.gender_display} - {wc.class_level_display})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={loadWeightClasses} 
-                      className={`h-12 w-12 rounded-full hover:bg-foreground/5 transition-all ${loadingWeightClasses ? 'animate-spin' : ''}`}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {loadingWeightClasses ? (
-                    <div className="flex-1 flex items-center justify-center">
-                      <Activity className="h-10 w-10 animate-pulse text-muted-foreground" />
-                    </div>
-                  ) : selectedWeightClass ? (
-                    <div className="flex-1 overflow-auto pr-4 custom-scrollbar bg-card/10 border border-foreground/[0.03] rounded-[2.5rem] p-6">
-                      <div className="flex gap-8 min-w-max min-h-[500px]">
-                        {roundsArray.map((roundNum) => {
-                          const roundMatches = matchesByRound[roundNum] || [];
-                          const sortedMatches = [...roundMatches].sort((a, b) => (a.bout_number || a.match_number) - (b.bout_number || b.match_number));
-                          return (
-                            <div key={roundNum} className="flex-1 min-w-[280px] max-w-[340px] flex flex-col gap-6">
-                              <div className="text-center font-display text-[10px] font-black italic tracking-[0.25em] text-muted-foreground/60 border-b border-foreground/5 pb-3 uppercase">
-                                {roundNum === maxRound ? "🏆 FINAL" : roundNum === maxRound - 1 ? "🔥 SEMIFINAL" : roundNum === maxRound - 2 ? "⚔️ PEREMPAT FINAL" : `BABAK ${roundNum}`}
-                              </div>
-                              <div className="flex-1 flex flex-col justify-around gap-6 py-4">
-                                {sortedMatches.map((match) => {
-                                  const redParticipant = match.participants?.find(p => p.corner === 'red')?.athlete_detail;
-                                  const blueParticipant = match.participants?.find(p => p.corner === 'blue')?.athlete_detail;
-                                  const isOngoing = match.status === "ongoing";
-                                  const isCalled = match.status === "called";
-                                  const isScheduled = match.status === "scheduled";
-                                  const isFinished = match.status === "finished";
-
-                                  return (
-                                    <div 
-                                      key={match.id}
-                                      className={`relative border rounded-[1.5rem] p-4 transition-all duration-300 bg-card/40 ${
-                                        isOngoing 
-                                          ? 'border-orange-500/40 shadow-lg shadow-orange-500/5 ring-1 ring-orange-500/20' 
-                                          : isCalled 
-                                            ? 'border-amber-500/30' 
-                                            : isFinished 
-                                              ? 'border-foreground/[0.05] opacity-80' 
-                                              : 'border-foreground/[0.08] hover:border-foreground/15'
-                                      }`}
-                                    >
-                                      {/* Match Number Badge */}
-                                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-foreground/5">
-                                        <span className="text-[10px] font-black font-display italic tracking-wide">
-                                          PARTAI #{match.bout_number || match.match_number}
-                                        </span>
-                                        {isOngoing ? (
-                                          <span className="flex items-center gap-1.5 text-[8px] font-black text-orange-500 uppercase tracking-widest">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-ping" /> ONGOING
-                                          </span>
-                                        ) : isCalled ? (
-                                          <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">CALLED</span>
-                                        ) : isFinished ? (
-                                          <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">FINISHED</span>
-                                        ) : (
-                                          <span className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest">SCHEDULED</span>
-                                        )}
-                                      </div>
-
-                                      {/* Competitors List */}
-                                      <div className="space-y-2">
-                                        {/* Red Corner */}
-                                        <div 
-                                          onClick={() => {
-                                            if (isFinished) return;
-                                            if (!redParticipant?.id) {
-                                              toast.info("Menunggu pemenang partai sebelumnya.");
-                                              return;
-                                            }
-                                            handleWinnerSelect(match.id, redParticipant.id, "red", redParticipant.nama);
-                                          }}
-                                          className={`group/row flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 ${
-                                            !isFinished && redParticipant?.id ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md' : ''
-                                          } ${
-                                            isFinished && match.winner_corner === 'red'
-                                              ? 'bg-red-500/10 border-red-500/30 font-bold'
-                                              : 'bg-background/40 border-foreground/[0.02]'
-                                          }`}
-                                        >
-                                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <div className="h-2 w-2 rounded-full bg-red-500" />
-                                            <div className="min-w-0 flex-1">
-                                              <p className={`text-xs truncate uppercase ${
-                                                isFinished && match.winner_corner === 'red' ? 'text-foreground font-bold' : 'text-foreground/80'
-                                              }`}>
-                                                {redParticipant?.nama || 'BYE / BELUM DITENTUKAN'}
-                                              </p>
-                                              <p className="text-[8px] text-muted-foreground/60 uppercase truncate">
-                                                {redParticipant?.klub || '-'}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          {isFinished && match.winner_corner === 'red' && (
-                                            <span className="text-[10px]">🏆</span>
-                                          )}
-                                        </div>
-
-                                        {/* Blue Corner */}
-                                        <div 
-                                          onClick={() => {
-                                            if (isFinished) return;
-                                            if (!blueParticipant?.id) {
-                                              toast.info("Menunggu pemenang partai sebelumnya.");
-                                              return;
-                                            }
-                                            handleWinnerSelect(match.id, blueParticipant.id, "blue", blueParticipant.nama);
-                                          }}
-                                          className={`group/row flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 ${
-                                            !isFinished && blueParticipant?.id ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md' : ''
-                                          } ${
-                                            isFinished && match.winner_corner === 'blue'
-                                              ? 'bg-blue-500/10 border-blue-500/30 font-bold'
-                                              : 'bg-background/40 border-foreground/[0.02]'
-                                          }`}
-                                        >
-                                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <div className="h-2 w-2 rounded-full bg-blue-500" />
-                                            <div className="min-w-0 flex-1">
-                                              <p className={`text-xs truncate uppercase ${
-                                                isFinished && match.winner_corner === 'blue' ? 'text-foreground font-bold' : 'text-foreground/80'
-                                              }`}>
-                                                {blueParticipant?.nama || 'BYE / BELUM DITENTUKAN'}
-                                              </p>
-                                              <p className="text-[8px] text-muted-foreground/60 uppercase truncate">
-                                                {blueParticipant?.klub || '-'}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          {isFinished && match.winner_corner === 'blue' && (
-                                            <span className="text-[10px]">🏆</span>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {/* Match Quick Actions */}
-                                      {!isFinished && (
-                                        <div className="mt-3 pt-2 border-t border-foreground/5 flex gap-2">
-                                          {isScheduled && (
-                                            <Button 
-                                              size="sm"
-                                              variant="outline"
-                                              className="w-full h-8 text-[8px] font-black uppercase tracking-wider rounded-lg border-foreground/10 hover:bg-foreground/5"
-                                              onClick={() => handleCallMatch(match.id)}
-                                            >
-                                              Panggil
-                                            </Button>
-                                          )}
-                                          {(isScheduled || isCalled) && (
-                                            <Button 
-                                              size="sm"
-                                              className="w-full h-8 text-[8px] font-black uppercase tracking-wider rounded-lg bg-foreground text-background"
-                                              onClick={() => handleStartMatch(match.id)}
-                                            >
-                                              Mulai
-                                            </Button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-foreground/5 rounded-[3rem] bg-secondary/5 h-80">
-                      <Layout className="h-16 w-16 mb-4 text-muted-foreground/20" />
-                      <p className="font-display text-xl tracking-tight opacity-40">Pilih kelas tanding untuk melihat bagan</p>
-                    </div>
-                  )}
-                </div>
-              )}
+              
             </div>
 
           </div>
