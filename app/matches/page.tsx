@@ -435,6 +435,7 @@ export default function MatchesPage() {
   const [gladiatorForm, setGladiatorForm] = useState({
     arena_id: "",
     bout_number: "",
+    gender: "0",
     red: { id: null as number | null, nama: "", kontingen: "" },
     blue: { id: null as number | null, nama: "", kontingen: "" }
   });
@@ -463,6 +464,7 @@ export default function MatchesPage() {
         tournament_id: TOURNAMENT_ID,
         arena_id: gladiatorForm.arena_id,
         bout_number: gladiatorForm.bout_number,
+        gender: parseInt(gladiatorForm.gender),
         red_athlete: gladiatorForm.red,
         blue_athlete: gladiatorForm.blue
       };
@@ -477,6 +479,7 @@ export default function MatchesPage() {
         setGladiatorForm({
           arena_id: "",
           bout_number: "",
+          gender: "0",
           red: { id: null, nama: "", kontingen: "" },
           blue: { id: null, nama: "", kontingen: "" }
         });
@@ -3082,6 +3085,24 @@ export default function MatchesPage() {
           </DialogHeader>
           
           <div className="p-6 space-y-8">
+            <div className="flex gap-4">
+              <div className="w-full md:w-1/3">
+                <Label className="text-xs font-bold text-foreground mb-1 block">Kategori Gender</Label>
+                <Select 
+                  value={gladiatorForm.gender} 
+                  onValueChange={(val) => setGladiatorForm({...gladiatorForm, gender: val})}
+                >
+                  <SelectTrigger className="h-11 bg-background border-foreground/10 focus:ring-0 rounded-xl">
+                    <SelectValue placeholder="Pilih Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Putra (Laki-laki)</SelectItem>
+                    <SelectItem value="1">Putri (Perempuan)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-start relative">
               {/* VS Divider Overlay */}
               <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-10">
