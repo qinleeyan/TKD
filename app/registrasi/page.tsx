@@ -95,6 +95,23 @@ export default function RegistrasiPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
+  const [summaryStats, setSummaryStats] = useState<{ total: number; present: number; missing: number } | null>(null);
+
+  const loadSummaryStats = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth(`/matches/summary/?tournament=${TOURNAMENT_ID}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSummaryStats({
+          total: data.total_athletes ?? 0,
+          present: data.checked_in ?? 0,
+          missing: (data.total_athletes ?? 0) - (data.checked_in ?? 0),
+        });
+      }
+    } catch (e) {
+      console.error("Gagal memuat ringkasan stats:", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
@@ -102,14 +119,16 @@ export default function RegistrasiPage() {
         router.push("/dashboard");
       } else {
         setAuthChecked(true);
+        loadSummaryStats();
       }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, loadSummaryStats]);
 
   /* ─── Load Groups (with athletes) ─── */
   const loadGroups = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
+      loadSummaryStats();
       const params = new URLSearchParams({
         tournament_id: TOURNAMENT_ID.toString(),
         category,
@@ -144,7 +163,7 @@ export default function RegistrasiPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [category, search]);
+  }, [category, search, loadSummaryStats]);
 
   useEffect(() => { loadGroups(); }, [loadGroups]);
 
@@ -161,15 +180,29 @@ export default function RegistrasiPage() {
           ),
         }))
       );
+      loadSummaryStats();
     }
     if (event === "groups_confirmed" || event === "bulk_match_deleted") {
       loadGroups(true);
+      loadSummaryStats();
     }
-  }, [loadGroups]));
+  }, [loadGroups, loadSummaryStats]));
 
   /* ─── Toggle presence ─── */
   const setPresence = async (athlete: Athlete, hadir: boolean) => {
     if (processingIds.has(athlete.id)) return;
+
+    // Optimistic stats update
+    setSummaryStats((prev) => {
+      if (!prev) return null;
+      const isCurrentlyCheckedIn = athlete.is_checked_in;
+      if (hadir && !isCurrentlyCheckedIn) {
+        return { ...prev, present: prev.present + 1, missing: prev.missing - 1 };
+      } else if (!hadir && isCurrentlyCheckedIn) {
+        return { ...prev, present: prev.present - 1, missing: prev.missing + 1 };
+      }
+      return prev;
+    });
 
     // Optimistic broadcast
     if (hadir) {
@@ -206,7 +239,7 @@ export default function RegistrasiPage() {
         }),
       });
       if (!res.ok) {
-        // Rollback
+        // Rollback local groups
         setGroups((prev) =>
           prev.map((g) => ({
             ...g,
@@ -215,8 +248,37 @@ export default function RegistrasiPage() {
             ),
           }))
         );
+        // Rollback stats
+        setSummaryStats((prev) => {
+          if (!prev) return null;
+          if (hadir) {
+            return { ...prev, present: prev.present - 1, missing: prev.missing + 1 };
+          } else {
+            return { ...prev, present: prev.present + 1, missing: prev.missing - 1 };
+          }
+        });
         toast.error("Gagal sinkronisasi ke server.");
       }
+    } catch (e) {
+      // Rollback local groups
+      setGroups((prev) =>
+        prev.map((g) => ({
+          ...g,
+          athletes: g.athletes.map((a) =>
+            a.id === athlete.id ? { ...a, is_checked_in: !hadir } : a
+          ),
+        }))
+      );
+      // Rollback stats
+      setSummaryStats((prev) => {
+        if (!prev) return null;
+        if (hadir) {
+          return { ...prev, present: prev.present - 1, missing: prev.missing + 1 };
+        } else {
+          return { ...prev, present: prev.present + 1, missing: prev.missing - 1 };
+        }
+      });
+      toast.error("Gagal terhubung ke server.");
     } finally {
       setProcessingIds((prev) => {
         const next = new Set(prev);
@@ -278,7 +340,8 @@ export default function RegistrasiPage() {
     );
   }
 
-  const presentPercent = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
+  const displayStats = summaryStats || stats;
+  const presentPercent = displayStats.total > 0 ? Math.round((displayStats.present / displayStats.total) * 100) : 0;
 
   return (
     <main className="min-h-screen bg-background noise-overlay">
@@ -334,7 +397,7 @@ export default function RegistrasiPage() {
                 <SelectItem value="partial">🔶 Hadir Sebagian</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-background/50 hover:bg-background/80 border border-foreground/5" onClick={() => loadGroups()}>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-background/50 hover:bg-background/80 border border-foreground/5" onClick={() => { loadGroups(); loadSummaryStats(); }}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
@@ -342,9 +405,9 @@ export default function RegistrasiPage() {
 
         {/* ─── Stats Cards ─── */}
         <div className="mb-8 grid gap-4 grid-cols-1 sm:grid-cols-4">
-          <StatCard title="Total Atlet" value={stats.total} icon={<Users className="h-5 w-5 text-blue-500" />} />
-          <StatCard title="Sudah Hadir" value={stats.present} icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} accent="emerald" />
-          <StatCard title="Belum Hadir" value={stats.missing} icon={<UserX className="h-5 w-5 text-red-500" />} accent="red" />
+          <StatCard title="Total Atlet" value={displayStats.total} icon={<Users className="h-5 w-5 text-blue-500" />} />
+          <StatCard title="Sudah Hadir" value={displayStats.present} icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />} accent="emerald" />
+          <StatCard title="Belum Hadir" value={displayStats.missing} icon={<UserX className="h-5 w-5 text-red-500" />} accent="red" />
           {/* Progress card */}
           <Card className="relative overflow-hidden rounded-2xl border-none bg-white/5 backdrop-blur-xl shadow-xl">
             <CardContent className="p-5">

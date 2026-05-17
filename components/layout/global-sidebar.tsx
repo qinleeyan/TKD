@@ -117,7 +117,7 @@ export function GlobalSidebar() {
               <StatsView />
             </div>
           ) : (
-            <ChatView isCollapsed={isCollapsed} setHasUnread={setHasUnread} setActiveTab={setActiveTab} />
+            <ChatView isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} setHasUnread={setHasUnread} setActiveTab={setActiveTab} />
           )}
         </div>
       </div>
@@ -247,7 +247,7 @@ interface ChatMessage {
   created_at: string;
 }
 
-function ChatView({ isCollapsed, setHasUnread, setActiveTab }: { isCollapsed: boolean, setHasUnread: (val: boolean) => void, setActiveTab: (tab: "stats" | "chat") => void }) {
+function ChatView({ isCollapsed, setIsCollapsed, setHasUnread, setActiveTab }: { isCollapsed: boolean, setIsCollapsed: (val: boolean) => void, setHasUnread: (val: boolean) => void, setActiveTab: (tab: "stats" | "chat") => void }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
