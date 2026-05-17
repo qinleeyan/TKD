@@ -870,8 +870,8 @@ export default function OperatorPage() {
                               </div>
                               <div className="flex-1 flex flex-col justify-around gap-6 py-4">
                                 {sortedMatches.map((match) => {
-                                  const redParticipant = match.red;
-                                  const blueParticipant = match.blue;
+                                  const redParticipant = match.participants?.find(p => p.corner === 'red')?.athlete_detail;
+                                  const blueParticipant = match.participants?.find(p => p.corner === 'blue')?.athlete_detail;
                                   const isOngoing = match.status === "ongoing";
                                   const isCalled = match.status === "called";
                                   const isScheduled = match.status === "scheduled";
